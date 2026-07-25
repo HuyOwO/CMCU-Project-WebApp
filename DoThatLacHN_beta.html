@@ -1,0 +1,1300 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Đồ Thất Lạc Hà Nội</title>
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; color: #1a1a1a; }
+
+    /*Header*/
+    .header { background: #fff; padding: .75rem 1.5rem; border-bottom: 1px solid #e5e5e5; display: flex; align-items: center; position: sticky; top: 0; z-index: 50; }
+    .logo { font-size: 17px; font-weight: 700; display: flex; align-items: center; gap: 8px; white-space: nowrap; flex-shrink: 0; }
+    .live-dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; animation: pulse 1.5s infinite; flex-shrink: 0; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+    /* Search bar in header - truly centered */
+    .header-search { position: absolute; left: 50%; transform: translateX(-50%); width: 100%; max-width: 480px; }
+    .header-search input { width: 100%; padding: 9px 44px 9px 16px; border-radius: 24px; border: 1.5px solid #e5e5e5; background: #f9f9f9; font-size: 14px; font-family: inherit; outline: none; transition: border-color .15s, background .15s; }
+    .header-search input:focus { border-color: #3b82f6; background: #fff; }
+    .header-search-btn { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 30px; height: 30px; border-radius: 50%; background: #2563eb; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background .15s; }
+    .header-search-btn:hover { background: #1d4ed8; }
+    .header-search-btn svg { display: block; }
+    .header-actions { margin-left: auto; flex-shrink: 0; }
+
+    /*container*/
+    .container { max-width: 720px; margin: 0 auto; padding: 1.25rem 1rem; }
+
+    /*Stats */
+    .stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 1rem; }
+    .stat { background: #fff; border: 1px solid #e5e5e5; border-radius: 10px; padding: .7rem .5rem; text-align: center; }
+    .stat-num { font-size: 20px; font-weight: 700; }
+    .stat-label { font-size: 11px; color: #666; margin-top: 2px; }
+
+    /*Filter bar*/
+    .filter-bar { display: flex; align-items: center; gap: 6px; margin-bottom: 1rem; flex-wrap: wrap; }
+    .filter-tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 0; -webkit-overflow-scrolling: touch; flex-shrink: 0; }
+    .filter-tabs::-webkit-scrollbar { display: none; }
+    .tab { padding: 6px 14px; border-radius: 20px; font-size: 13px; cursor: pointer; border: 1px solid #ddd; background: #fff; color: #555; white-space: nowrap; flex-shrink: 0; transition: all .15s; }
+    .tab.active { background: #eff6ff; color: #1d4ed8; border-color: #93c5fd; font-weight: 600; }
+    .tab:hover:not(.active) { background: #f9f9f9; }
+
+    /* Select filters*/
+    .filter-select { padding: 6px 10px; border-radius: 20px; border: 1px solid #ddd; background: #fff; font-size: 13px; outline: none; cursor: pointer; color: #555; white-space: nowrap; flex-shrink: 0; transition: border-color .15s; appearance: none; -webkit-appearance: none; padding-right: 24px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23999' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 8px center; }
+    .filter-select:focus { border-color: #3b82f6; }
+
+    /*button + panel */
+    .filter-more-btn { padding: 6px 12px; border-radius: 20px; border: 1px solid #ddd; background: #fff; font-size: 13px; cursor: pointer; color: #555; white-space: nowrap; flex-shrink: 0; display: flex; align-items: center; gap: 5px; transition: all .15s; }
+    .filter-more-btn:hover { background: #f5f5f5; }
+    .filter-more-btn.has-active { border-color: #93c5fd; background: #eff6ff; color: #1d4ed8; }
+    .filter-more-chevron { font-size: 9px; transition: transform .2s; }
+    .filter-more-btn.open .filter-more-chevron { transform: rotate(180deg); }
+
+    .filter-panel { background: #fff; border: 1px solid #e5e5e5; border-radius: 12px; box-shadow: 0 6px 20px rgba(0,0,0,.09); padding: 1rem 1.25rem; margin-bottom: 1rem; display: none; }
+    .filter-panel.open { display: block; }
+    .filter-panel-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .filter-panel label { font-size: 11px; font-weight: 600; color: #777; display: block; margin-bottom: 4px; }
+    .filter-panel select, .filter-panel input[type=date] { width: 100%; padding: 7px 10px; border-radius: 8px; border: 1px solid #ddd; font-size: 13px; font-family: inherit; outline: none; background: #fafafa; }
+    .filter-panel select:focus, .filter-panel input:focus { border-color: #3b82f6; background: #fff; }
+    .filter-panel-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: .75rem; padding-top: .75rem; border-top: 1px solid #f0f0f0; }
+    .btn-filter-reset { padding: 6px 14px; border-radius: 8px; border: 1px solid #ddd; background: #fff; font-size: 13px; cursor: pointer; color: #555; }
+    .btn-filter-apply { padding: 6px 16px; border-radius: 8px; border: none; background: #2563eb; color: #fff; font-size: 13px; font-weight: 600; cursor: pointer; }
+    .btn-filter-apply:hover { background: #1d4ed8; }
+
+    /*Cards*/
+    .card { background: #fff; border: 1px solid #e5e5e5; border-radius: 12px; overflow: hidden; margin-bottom: .75rem; transition: border-color .15s, box-shadow .15s; display: flex; flex-direction: row; }
+    .card:hover { border-color: #93c5fd; box-shadow: 0 2px 8px rgba(59,130,246,.08); }
+    .card.is-urgent { border-left: 3px solid #ef4444; background: #fffafa; }
+    .card.is-closed { opacity: .65; }
+    .card-body { padding: 1rem 1.25rem; flex: 1; min-width: 0; }
+    .card-img-wrap { width: 110px; min-width: 110px; border-left: 1px solid #f0f0f0; overflow: hidden; display: flex; align-items: center; justify-content: center; background: #f9f9f9; }
+    .card-img { width: 110px; height: 100%; object-fit: cover; display: block; min-height: 100%; }
+    .card-img-placeholder { width: 110px; min-height: 120px; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 26px; color: #ccc; gap: 5px; }
+    .card-img-placeholder span { font-size: 11px; color: #bbb; }
+
+    /*Badges*/
+    .card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+    .card-badges { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+    .badge { font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 20px; white-space: nowrap; }
+    .badge-lost    { background: #fee2e2; color: #991b1b; }
+    .badge-found   { background: #dcfce7; color: #166534; }
+    .badge-pet     { background: #f3e8ff; color: #6b21a8; }
+    .badge-vehicle { background: #fff7ed; color: #9a3412; }
+    .badge-person  { background: #e0f2fe; color: #075985; }
+    .badge-urgent  { background: #ef4444; color: #fff; animation: blink 2s infinite; }
+    .badge-reward  { background: #fef9c3; color: #713f12; }
+    .badge-closed  { background: #f3f4f6; color: #6b7280; }
+    .new-tag { font-size: 10px; background: #fef3c7; color: #92400e; padding: 2px 7px; border-radius: 10px; font-weight: 700; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.7} }
+
+    .card-title { font-size: 15px; font-weight: 600; margin: .35rem 0 .25rem; }
+    .card-meta { font-size: 12px; color: #666; display: flex; gap: 10px; flex-wrap: wrap; }
+    .card-meta span { display: flex; align-items: center; gap: 3px; }
+    .card-desc { font-size: 13px; color: #555; margin-top: .4rem; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .time-label { font-size: 11px; color: #999; white-space: nowrap; flex-shrink: 0; }
+
+    .card-phone { margin-top: .5rem; display: flex; align-items: center; gap: 6px; }
+    .phone-masked { font-size: 13px; color: #2563eb; font-weight: 500; cursor: pointer; user-select: none; }
+    .phone-masked:hover { text-decoration: underline; }
+    .phone-hint { font-size: 11px; color: #aaa; }
+
+    /*card action bar*/
+    .card-actions { display: flex; gap: 5px; margin-top: .6rem; padding-top: .6rem; border-top: 1px solid #f0f0f0; flex-wrap: wrap; align-items: center; }
+    .btn-action { padding: 4px 9px; border-radius: 6px; font-size: 12px; cursor: pointer; border: 1px solid #e5e5e5; background: #fff; color: #555; display: inline-flex; align-items: center; gap: 3px; transition: all .15s; white-space: nowrap; }
+    .btn-action:hover { background: #f5f5f5; }
+    .btn-action.active-match { background: #ecfdf5; border-color: #86efac; color: #166534; }
+    .btn-action.active-flag  { background: #fff1f2; border-color: #fecdd3; color: #9f1239; }
+    .btn-action.resolve { background: #eff6ff; border-color: #93c5fd; color: #1e40af; }
+    .card-views { margin-left: auto; font-size: 11px; color: #bbb; display: flex; align-items: center; gap: 3px; }
+
+    /*Empty state*/
+    .empty { text-align: center; padding: 3rem 0; color: #999; font-size: 14px; }
+    .empty-icon { font-size: 40px; margin-bottom: 8px; }
+
+    /*Buttons*/
+    .btn-primary { padding: 9px 18px; background: #2563eb; color: #fff; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; }
+    .btn-primary:hover { background: #1d4ed8; }
+    .btn-ghost { padding: 9px 16px; background: #fff; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; cursor: pointer; color: #333; }
+    .btn-ghost:hover { background: #f5f5f5; }
+    .btn-load-more { display: block; width: 100%; padding: 11px; background: #fff; border: 1px solid #e5e5e5; border-radius: 10px; font-size: 14px; color: #555; cursor: pointer; text-align: center; margin-top: 4px; transition: all .15s; }
+    .btn-load-more:hover { background: #f5f5f5; border-color: #bbb; }
+
+    /*Modal */
+    .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: flex; align-items: flex-start; justify-content: center; z-index: 100; overflow-y: auto; padding: 2rem 1rem; }
+    .modal { background: #fff; border-radius: 14px; padding: 1.5rem; width: 92%; max-width: 480px; margin: auto; }
+    .modal h3 { font-size: 17px; font-weight: 600; margin-bottom: 1rem; }
+    .form-row { margin-bottom: .75rem; }
+    .form-row label { font-size: 12px; color: #555; display: block; margin-bottom: 4px; font-weight: 500; }
+    .form-row input,
+    .form-row select,
+    .form-row textarea { width: 100%; padding: 9px 12px; border-radius: 8px; border: 1px solid #ddd; font-size: 14px; font-family: inherit; outline: none; }
+    .form-row input:focus,
+    .form-row select:focus,
+    .form-row textarea:focus { border-color: #3b82f6; }
+    .form-row textarea { resize: vertical; min-height: 70px; }
+    .form-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: .75rem; }
+    .form-row-2 .form-row { margin-bottom: 0; }
+    .modal-btns { display: flex; gap: 8px; justify-content: flex-end; margin-top: 1rem; }
+
+    /* Urgent toggle */
+    .urgent-label { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: #fff5f5; border: 1px solid #fecaca; border-radius: 8px; margin-bottom: .75rem; cursor: pointer; user-select: none; }
+    .urgent-label input[type=checkbox] { width: 16px; height: 16px; accent-color: #ef4444; cursor: pointer; flex-shrink: 0; }
+    .urgent-label-text strong { display: block; font-size: 13px; color: #991b1b; }
+    .urgent-label-text span { font-size: 11px; color: #ef4444; }
+
+    /* Đăng ảnh */
+    .img-upload-box { border: 2px dashed #ddd; border-radius: 8px; padding: 1.2rem; text-align: center; cursor: pointer; transition: border-color .15s; position: relative; }
+    .img-upload-box:hover { border-color: #3b82f6; }
+    .img-upload-box input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+    .upload-icon { font-size: 28px; margin-bottom: 6px; }
+    .img-upload-box p { font-size: 13px; color: #888; }
+    .img-preview { width: 100%; max-height: 180px; object-fit: cover; border-radius: 8px; margin-top: 8px; display: none; }
+
+    /* Toast */
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #1a1a1a; color: #fff; padding: 10px 20px; border-radius: 8px; font-size: 14px; z-index: 200; opacity: 0; transition: opacity .3s; pointer-events: none; white-space: nowrap; }
+    .toast.show { opacity: 1; }
+
+    /*Màn hình đăng nhập*/
+    .auth-modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.5); display: flex; align-items: center; justify-content: center; z-index: 300; padding: 1rem; }
+    .auth-modal { background: #fff; border-radius: 16px; padding: 2rem 1.75rem; width: 100%; max-width: 400px; box-shadow: 0 20px 60px rgba(0,0,0,.18); position: relative; }
+    .auth-modal-close { position: absolute; top: 14px; right: 16px; background: none; border: none; font-size: 20px; cursor: pointer; color: #999; line-height: 1; padding: 4px; border-radius: 6px; }
+    .auth-modal-close:hover { background: #f5f5f5; color: #333; }
+    .auth-logo { text-align: center; font-size: 28px; margin-bottom: .25rem; }
+    .auth-title { font-size: 20px; font-weight: 700; text-align: center; margin-bottom: .25rem; }
+    .auth-subtitle { font-size: 13px; color: #888; text-align: center; margin-bottom: 1.5rem; }
+    .auth-tabs { display: flex; border: 1px solid #e5e5e5; border-radius: 10px; padding: 3px; gap: 3px; margin-bottom: 1.5rem; background: #f9f9f9; }
+    .auth-tab { flex: 1; padding: 8px; font-size: 14px; font-weight: 500; border: none; background: none; cursor: pointer; border-radius: 8px; color: #666; transition: all .15s; }
+    .auth-tab.active { background: #fff; color: #1a1a1a; box-shadow: 0 1px 4px rgba(0,0,0,.1); font-weight: 600; }
+    .auth-form { display: none; }
+    .auth-form.active { display: block; }
+    .auth-field { margin-bottom: .9rem; }
+    .auth-field label { font-size: 12px; font-weight: 600; color: #444; display: block; margin-bottom: 5px; }
+    .auth-field input { width: 100%; padding: 10px 13px; border-radius: 9px; border: 1.5px solid #e5e5e5; font-size: 14px; font-family: inherit; outline: none; transition: border-color .15s, box-shadow .15s; background: #fafafa; }
+    .auth-field input:focus { border-color: #3b82f6; background: #fff; box-shadow: 0 0 0 3px rgba(59,130,246,.1); }
+    .auth-field .input-hint { font-size: 11px; color: #aaa; margin-top: 4px; }
+    .btn-auth { width: 100%; padding: 11px; background: #2563eb; color: #fff; border: none; border-radius: 9px; font-size: 14px; font-weight: 600; cursor: pointer; transition: background .15s, transform .1s; }
+    .btn-auth:hover { background: #1d4ed8; }
+    .btn-auth:active { transform: scale(.98); }
+    .auth-footer-text { font-size: 12px; color: #aaa; text-align: center; margin-top: 1rem; }
+    .auth-footer-text a { color: #2563eb; text-decoration: none; cursor: pointer; font-weight: 500; }
+    .auth-footer-text a:hover { text-decoration: underline; }
+    .auth-error { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; font-size: 12px; padding: 8px 12px; border-radius: 8px; margin-bottom: .9rem; display: none; }
+    .auth-success { background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; font-size: 12px; padding: 8px 12px; border-radius: 8px; margin-bottom: .9rem; display: none; }
+    .auth-terms { font-size: 11px; color: #aaa; text-align: center; margin-top: .75rem; line-height: 1.6; }
+    .auth-terms a { color: #2563eb; }
+
+    /*Account icon button*/
+    .header-actions { position: relative; display: flex; align-items: center; gap: 8px; }
+    .acct-btn { display: flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 20px; border: 1.5px solid #d1d5db; background: #fff; cursor: pointer; transition: background .15s, border-color .15s; user-select: none; }
+    .acct-btn:hover { background: #f5f5f5; border-color: #9ca3af; }
+    .acct-btn svg { display: block; flex-shrink: 0; }
+    .acct-chevron { font-size: 10px; color: #6b7280; transition: transform .2s; }
+    .acct-btn.open .acct-chevron { transform: rotate(180deg); }
+
+    /* Logged-in: show initials circle */
+    .acct-avatar { width: 26px; height: 26px; border-radius: 50%; background: linear-gradient(135deg, #2563eb, #7c3aed); display: none; align-items: center; justify-content: center; color: #fff; font-size: 12px; font-weight: 700; }
+    .acct-btn.logged-in .acct-avatar { display: flex; }
+    .acct-btn.logged-in .acct-icon-svg { display: none; }
+    .acct-name { font-size: 13px; font-weight: 500; color: #111; display: none; max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .acct-btn.logged-in .acct-name { display: block; }
+
+    /* Dropdown */
+    .acct-dropdown { position: absolute; top: calc(100% + 8px); right: 0; background: #fff; border: 1px solid #e5e5e5; border-radius: 12px; box-shadow: 0 8px 28px rgba(0,0,0,.12); min-width: 200px; z-index: 100; overflow: hidden;
+      opacity: 0; transform: translateY(-6px) scale(.97); pointer-events: none; transition: opacity .18s, transform .18s; }
+    .acct-dropdown.open { opacity: 1; transform: translateY(0) scale(1); pointer-events: all; }
+
+    .acct-dd-header { padding: 14px 16px 10px; border-bottom: 1px solid #f0f0f0; display: none; }
+    .acct-dd-header.visible { display: block; }
+    .acct-dd-username { font-size: 14px; font-weight: 600; color: #111; }
+    .acct-dd-email { font-size: 11px; color: #999; margin-top: 2px; }
+
+    .acct-dd-section { padding: 6px 0; border-bottom: 1px solid #f0f0f0; }
+    .acct-dd-section:last-child { border-bottom: none; }
+    .acct-dd-item { padding: 9px 16px; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 10px; color: #333; transition: background .1s; }
+    .acct-dd-item:hover { background: #f5f5f5; }
+    .acct-dd-item.danger { color: #ef4444; }
+    .acct-dd-item.danger:hover { background: #fef2f2; }
+    .acct-dd-item .dd-icon { font-size: 15px; width: 18px; text-align: center; }
+
+    /* ── Responsive ── */
+    @media (max-width: 600px) {
+      .header { padding: .6rem 1rem; gap: 10px; }
+      .logo span { display: none; }
+      .stats { grid-template-columns: repeat(3, 1fr); }
+      .stats .stat:nth-child(4),
+      .stats .stat:nth-child(5) { display: none; }
+      .form-row-2 { grid-template-columns: 1fr; }
+      .card-img-wrap { width: 90px; min-width: 90px; }
+      .filter-panel-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ── Dark Mode Toggle Button ── */
+    .theme-toggle-btn {
+      width: 34px; height: 34px; border-radius: 50%;
+      border: 1.5px solid #d1d5db; background: #fff;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      font-size: 16px; transition: all .2s; flex-shrink: 0; line-height: 1;
+    }
+    .theme-toggle-btn:hover { background: #f5f5f5; border-color: #9ca3af; }
+
+    /* ── Dark Mode ── */
+    body.dark-mode { background: #111; color: #e0e0e0; }
+    body.dark-mode .header { background: #1c1c1e; border-bottom-color: #2c2c2e; }
+    body.dark-mode .header-search input { background: #2c2c2e; border-color: #3a3a3c; color: #e0e0e0; }
+    body.dark-mode .header-search input::placeholder { color: #666; }
+    body.dark-mode .header-search input:focus { background: #3a3a3c; border-color: #3b82f6; }
+
+    body.dark-mode .stat { background: #1c1c1e; border-color: #2c2c2e; }
+    body.dark-mode .stat-label { color: #777; }
+
+    body.dark-mode .tab { background: #1c1c1e; border-color: #3a3a3c; color: #999; }
+    body.dark-mode .tab.active { background: #1e3a5f; color: #93c5fd; border-color: #2563eb; }
+    body.dark-mode .tab:hover:not(.active) { background: #2c2c2e; }
+
+    body.dark-mode .filter-select { background-color: #1c1c1e; border-color: #3a3a3c; color: #999;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23666' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 8px center; }
+    body.dark-mode .filter-select option { background: #1c1c1e; color: #e0e0e0; }
+
+    body.dark-mode .filter-more-btn { background: #1c1c1e; border-color: #3a3a3c; color: #999; }
+    body.dark-mode .filter-more-btn:hover { background: #2c2c2e; }
+    body.dark-mode .filter-more-btn.has-active { background: #1e3a5f; border-color: #2563eb; color: #93c5fd; }
+
+    body.dark-mode .filter-panel { background: #1c1c1e; border-color: #2c2c2e; box-shadow: 0 6px 20px rgba(0,0,0,.4); }
+    body.dark-mode .filter-panel label { color: #777; }
+    body.dark-mode .filter-panel select,
+    body.dark-mode .filter-panel input[type=date] { background: #2c2c2e; border-color: #3a3a3c; color: #e0e0e0; }
+    body.dark-mode .filter-panel select:focus,
+    body.dark-mode .filter-panel input:focus { border-color: #3b82f6; background: #3a3a3c; }
+    body.dark-mode .filter-panel-actions { border-top-color: #2c2c2e; }
+    body.dark-mode .btn-filter-reset { background: #2c2c2e; border-color: #3a3a3c; color: #999; }
+
+    body.dark-mode .card { background: #1c1c1e; border-color: #2c2c2e; }
+    body.dark-mode .card:hover { border-color: #3b82f6; box-shadow: 0 2px 8px rgba(59,130,246,.15); }
+    body.dark-mode .card.is-urgent { background: #1e1212; border-left-color: #ef4444; }
+    body.dark-mode .card-img-wrap { background: #252527; border-left-color: #2c2c2e; }
+    body.dark-mode .card-img-placeholder { color: #444; }
+    body.dark-mode .card-img-placeholder span { color: #444; }
+    body.dark-mode .card-meta { color: #777; }
+    body.dark-mode .card-desc { color: #999; }
+    body.dark-mode .time-label { color: #555; }
+    body.dark-mode .card-actions { border-top-color: #2c2c2e; }
+    body.dark-mode .btn-action { background: #252527; border-color: #3a3a3c; color: #999; }
+    body.dark-mode .btn-action:hover { background: #3a3a3c; }
+    body.dark-mode .btn-action.active-match { background: #0f2a1a; border-color: #166534; color: #4ade80; }
+    body.dark-mode .btn-action.active-flag  { background: #2a0f12; border-color: #9f1239; color: #f87171; }
+    body.dark-mode .btn-action.resolve { background: #1e2f50; border-color: #1d4ed8; color: #93c5fd; }
+    body.dark-mode .card-views { color: #555; }
+
+    body.dark-mode .btn-load-more { background: #1c1c1e; border-color: #2c2c2e; color: #888; }
+    body.dark-mode .btn-load-more:hover { background: #2c2c2e; border-color: #555; }
+
+    body.dark-mode .modal-bg { background: rgba(0,0,0,.7); }
+    body.dark-mode .modal { background: #1c1c1e; }
+    body.dark-mode .modal h3 { color: #e0e0e0; }
+    body.dark-mode .form-row label { color: #999; }
+    body.dark-mode .form-row input,
+    body.dark-mode .form-row select,
+    body.dark-mode .form-row textarea { background: #2c2c2e; border-color: #3a3a3c; color: #e0e0e0; }
+    body.dark-mode .form-row input:focus,
+    body.dark-mode .form-row select:focus,
+    body.dark-mode .form-row textarea:focus { border-color: #3b82f6; background: #3a3a3c; }
+    body.dark-mode .form-row select option { background: #1c1c1e; color: #e0e0e0; }
+    body.dark-mode .form-row input::placeholder,
+    body.dark-mode .form-row textarea::placeholder { color: #555; }
+    body.dark-mode .urgent-label { background: #2a1515; border-color: #7f1d1d; }
+    body.dark-mode .img-upload-box { border-color: #3a3a3c; }
+    body.dark-mode .img-upload-box p { color: #666; }
+    body.dark-mode .btn-ghost { background: #2c2c2e; border-color: #3a3a3c; color: #aaa; }
+    body.dark-mode .btn-ghost:hover { background: #3a3a3c; }
+
+    body.dark-mode .auth-modal-bg { background: rgba(0,0,0,.7); }
+    body.dark-mode .auth-modal { background: #1c1c1e; box-shadow: 0 20px 60px rgba(0,0,0,.5); }
+    body.dark-mode .auth-title { color: #e0e0e0; }
+    body.dark-mode .auth-subtitle { color: #777; }
+    body.dark-mode .auth-tabs { background: #252527; border-color: #3a3a3c; }
+    body.dark-mode .auth-tab { color: #777; }
+    body.dark-mode .auth-tab.active { background: #3a3a3c; color: #e0e0e0; box-shadow: 0 1px 4px rgba(0,0,0,.4); }
+    body.dark-mode .auth-field label { color: #999; }
+    body.dark-mode .auth-field input { background: #2c2c2e; border-color: #3a3a3c; color: #e0e0e0; }
+    body.dark-mode .auth-field input::placeholder { color: #555; }
+    body.dark-mode .auth-field input:focus { border-color: #3b82f6; background: #3a3a3c; box-shadow: 0 0 0 3px rgba(59,130,246,.15); }
+    body.dark-mode .auth-modal-close { color: #777; }
+    body.dark-mode .auth-modal-close:hover { background: #2c2c2e; color: #ccc; }
+    body.dark-mode .auth-footer-text { color: #666; }
+    body.dark-mode .auth-terms { color: #555; }
+    body.dark-mode .auth-error { background: #2a1010; border-color: #7f1d1d; color: #f87171; }
+    body.dark-mode .auth-success { background: #0f2a1a; border-color: #166534; color: #4ade80; }
+
+    body.dark-mode .acct-btn { background: #1c1c1e; border-color: #3a3a3c; }
+    body.dark-mode .acct-btn:hover { background: #2c2c2e; border-color: #555; }
+    body.dark-mode .acct-btn .acct-icon-svg { stroke: #aaa; }
+    body.dark-mode .acct-name { color: #e0e0e0; }
+    body.dark-mode .acct-chevron { color: #777; }
+    body.dark-mode .acct-dropdown { background: #1c1c1e; border-color: #2c2c2e; box-shadow: 0 8px 28px rgba(0,0,0,.5); }
+    body.dark-mode .acct-dd-header { border-bottom-color: #2c2c2e; }
+    body.dark-mode .acct-dd-username { color: #e0e0e0; }
+    body.dark-mode .acct-dd-email { color: #777; }
+    body.dark-mode .acct-dd-section { border-bottom-color: #2c2c2e; }
+    body.dark-mode .acct-dd-item { color: #ccc; }
+    body.dark-mode .acct-dd-item:hover { background: #2c2c2e; }
+    body.dark-mode .acct-dd-item.danger { color: #f87171; }
+    body.dark-mode .acct-dd-item.danger:hover { background: #2a1010; }
+
+    body.dark-mode .theme-toggle-btn { background: #1c1c1e; border-color: #3a3a3c; }
+    body.dark-mode .theme-toggle-btn:hover { background: #2c2c2e; border-color: #555; }
+    body.dark-mode .empty { color: #555; }
+    body.dark-mode .toast { background: #e5e5e5; color: #1a1a1a; }
+    body.dark-mode .phone-masked { color: #60a5fa; }
+    body.dark-mode .input-hint a { color: #60a5fa !important; }
+    body.dark-mode .auth-footer-text a { color: #60a5fa; }
+    body.dark-mode .auth-terms a { color: #60a5fa; }
+  </style>
+</head>
+<body>
+
+<!-- ── Header ── -->
+<div class="header">
+  <div class="logo">
+    🔍 <span>Đồ Thất Lạc HN</span>
+    <div class="live-dot" title="Cập nhật realtime"></div>
+  </div>
+
+  <!-- Search bar in header -->
+  <div class="header-search">
+    <input type="text" id="search-input" placeholder="Tìm theo tên đồ, địa điểm, mô tả..." oninput="onFilter()">
+    <button class="header-search-btn" onclick="onFilter()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round">
+        <circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+    </button>
+  </div>
+
+  <div class="header-actions">
+    <!-- Theme toggle button -->
+    <button class="theme-toggle-btn" id="theme-toggle-btn" onclick="toggleTheme()" title="Chuyển dark/light mode">🌙</button>
+
+    <!-- Icon button (chưa/đã đăng nhập đều dùng chung) -->
+    <div class="acct-btn" id="acct-btn" onclick="toggleAcctDropdown()">
+      <!-- Icon người dùng (khi chưa đăng nhập) -->
+      <svg class="acct-icon-svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#374151" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+      </svg>
+      <!-- Avatar chữ cái (khi đã đăng nhập) -->
+      <div class="acct-avatar" id="acct-avatar">U</div>
+      <span class="acct-name" id="acct-name"></span>
+      <span class="acct-chevron">▾</span>
+    </div>
+
+    <!-- Dropdown menu -->
+    <div class="acct-dropdown" id="acct-dropdown">
+      <!-- Phần info (chỉ hiện khi đã đăng nhập) -->
+      <div class="acct-dd-header" id="acct-dd-header">
+        <div class="acct-dd-username" id="acct-dd-username"></div>
+        <div class="acct-dd-email" id="acct-dd-email"></div>
+      </div>
+
+      <!-- Khi chưa đăng nhập -->
+      <div class="acct-dd-section" id="dd-guest-section">
+        <div class="acct-dd-item" onclick="openAuth('login')">Đăng nhập</div>
+        <div class="acct-dd-item" onclick="openAuth('register')"> Đăng ký</div>
+      </div>
+
+      <!-- Khi đã đăng nhập -->
+      <div class="acct-dd-section" id="dd-user-section" style="display:none">
+        <div class="acct-dd-item">      <span class="dd-icon">📋</span> Tin của tôi</div>
+        <div class="acct-dd-item">      <span class="dd-icon">⚙️</span> Cài đặt</div>
+      </div>
+      <div class="acct-dd-section" id="dd-logout-section" style="display:none">
+        <div class="acct-dd-item danger" onclick="logout()"><span class="dd-icon">🚪</span> Đăng xuất</div>
+      </div>
+    </div>
+
+    <button class="btn-primary" onclick="requireAuthThenPost()" style="padding:7px 14px;font-size:13px">+ Đăng tin</button>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- ── Stats ── -->
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-num" id="total-count">0</div>
+      <div class="stat-label">Tổng tin</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num" style="color:#991b1b" id="lost-count">0</div>
+      <div class="stat-label">Đang tìm</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num" style="color:#166534" id="found-count">0</div>
+      <div class="stat-label">Nhặt được</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num" style="color:#1d4ed8" id="closed-count">0</div>
+      <div class="stat-label">Đã tìm thấy</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num" style="color:#ef4444" id="urgent-count">0</div>
+      <div class="stat-label">Khẩn cấp</div>
+    </div>
+  </div>
+
+  <!-- ── Filter bar ── -->
+  <div class="filter-bar">
+    <!-- Category tabs -->
+    <div class="filter-tabs">
+      <button class="tab active" onclick="setTab('all',this)">Tất cả</button>
+      <button class="tab" onclick="setTab('lost',this)">🚨 Mất đồ</button>
+      <button class="tab" onclick="setTab('found',this)">Nhặt được</button>
+      <button class="tab" onclick="setTab('pet',this)">🐾 Thú cưng</button>
+      <button class="tab" onclick="setTab('vehicle',this)">🚗 Xe cộ</button>
+      <button class="tab" onclick="setTab('person',this)">👤 Tìm người</button>
+    </div>
+
+    <!-- District select inline -->
+    <select class="filter-select" id="district-filter" onchange="onFilter()">
+      <option value="">Tất cả quận</option>
+      <option>Hoàn Kiếm</option><option>Đống Đa</option><option>Hai Bà Trưng</option>
+      <option>Ba Đình</option><option>Cầu Giấy</option><option>Thanh Xuân</option>
+      <option>Long Biên</option><option>Hoàng Mai</option><option>Tây Hồ</option>
+      <option>Nam Từ Liêm</option><option>Bắc Từ Liêm</option><option>Hà Đông</option>
+    </select>
+
+    <!-- Sort select inline -->
+    <select class="filter-select" id="sort-select" onchange="onFilter()">
+      <option value="newest">⏱ Mới nhất</option>
+      <option value="urgent">⚡ Khẩn cấp</option>
+      <option value="views">👁 Lượt xem</option>
+    </select>
+
+  </div>
+
+  <!-- ── Feed & Load more ── -->
+  <div id="feed"></div>
+  <div id="load-more-wrap"></div>
+
+</div>
+
+<!-- ── Modal đăng tin ── -->
+<div class="modal-bg" id="modal" style="display:none" onclick="handleOverlayClick(event)">
+  <div class="modal">
+    <h3>📝 Đăng tin mới</h3>
+
+    <div class="form-row">
+      <label>Loại tin</label>
+      <select id="f-type">
+        <option value="lost">🚨 Tôi bị mất đồ</option>
+        <option value="found">✅ Tôi nhặt được đồ</option>
+        <option value="pet">🐾 Thú cưng thất lạc</option>
+        <option value="vehicle">🚗 Xe cộ thất lạc</option>
+        <option value="person">👤 Tìm người thân</option>
+      </select>
+    </div>
+
+    <label class="urgent-label" for="f-urgent">
+      <input type="checkbox" id="f-urgent">
+      <div class="urgent-label-text">
+        <strong>🚨 Đánh dấu KHẨN CẤP</strong>
+        <span>Tin được ưu tiên hiển thị &amp; đánh dấu nổi bật</span>
+      </div>
+    </label>
+
+    <div class="form-row">
+      <label>Tên đồ vật / Đặc điểm nhận dạng *</label>
+      <input type="text" id="f-name" placeholder="VD: Ví da màu đen, Điện thoại iPhone 14...">
+    </div>
+
+    <div class="form-row-2">
+      <div class="form-row">
+        <label>Quận / Khu vực *</label>
+        <select id="f-district">
+          <option>Hoàn Kiếm</option><option>Đống Đa</option><option>Hai Bà Trưng</option>
+          <option>Ba Đình</option><option>Cầu Giấy</option><option>Thanh Xuân</option>
+          <option>Long Biên</option><option>Hoàng Mai</option><option>Tây Hồ</option>
+          <option>Nam Từ Liêm</option><option>Bắc Từ Liêm</option><option>Hà Đông</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label>Ngày mất / Tìm thấy</label>
+        <input type="date" id="f-date">
+      </div>
+    </div>
+
+    <div class="form-row">
+      <label>Địa điểm cụ thể *</label>
+      <input type="text" id="f-location" placeholder="VD: Hồ Hoàn Kiếm, Siêu thị BigC Thăng Long...">
+    </div>
+
+    <div class="form-row-2">
+      <div class="form-row">
+        <label>Số điện thoại liên hệ *</label>
+        <input type="tel" id="f-phone" placeholder="VD: 0912345678" maxlength="11">
+      </div>
+      <div class="form-row">
+        <label>Phần thưởng (nếu có)</label>
+        <input type="text" id="f-reward" placeholder="VD: 500.000 VNĐ">
+      </div>
+    </div>
+
+    <div class="form-row">
+      <label>Mô tả thêm</label>
+      <textarea id="f-desc" placeholder="Màu sắc, đặc điểm nhận dạng, hoàn cảnh mất..."></textarea>
+    </div>
+
+    <div class="form-row">
+      <label>Ảnh đồ vật</label>
+      <div class="img-upload-box" onclick="document.getElementById('f-img').click()">
+        <input type="file" id="f-img" accept="image/*" onchange="previewImg(event)" style="display:none">
+        <div class="upload-icon">📷</div>
+        <p id="upload-text">Bấm để chọn ảnh (JPG, PNG...)</p>
+        <img id="img-preview" class="img-preview" alt="preview">
+      </div>
+    </div>
+
+    <div class="modal-btns">
+      <button class="btn-ghost" onclick="closeModal()">Hủy</button>
+      <button class="btn-primary" onclick="submitPost()">Đăng ngay</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- ── Auth Modal ── -->
+<div class="auth-modal-bg" id="auth-modal" style="display:none" onclick="handleAuthOverlay(event)">
+  <div class="auth-modal" id="auth-modal-inner">
+    <button class="auth-modal-close" onclick="closeAuth()">✕</button>
+    <div class="auth-logo">🔍</div>
+    <div class="auth-title">Đồ Thất Lạc HN</div>
+    <div class="auth-subtitle" id="auth-subtitle">Đăng nhập để đăng tin và theo dõi</div>
+
+    <!-- Tabs -->
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tab-login" onclick="switchAuthTab('login')">Đăng nhập</button>
+      <button class="auth-tab" id="tab-register" onclick="switchAuthTab('register')">Đăng ký</button>
+    </div>
+
+    <!-- Error / Success alerts -->
+    <div class="auth-error" id="auth-error"></div>
+    <div class="auth-success" id="auth-success"></div>
+
+    <!-- ── Login form ── -->
+    <div class="auth-form active" id="form-login">
+      <div class="auth-field">
+        <label>Email</label>
+        <input type="email" id="login-email" placeholder="ten@email.com" autocomplete="email">
+      </div>
+      <div class="auth-field">
+        <label>Mật khẩu</label>
+        <input type="password" id="login-pass" placeholder="Nhập mật khẩu" autocomplete="current-password">
+        <div class="input-hint" style="font-size:11px;color:#aaa;margin-top:4px;text-align:right">
+          <a href="#" style="color:#2563eb;text-decoration:none;font-size:11px" onclick="switchAuthTab('forgot');return false">Quên mật khẩu?</a>
+        </div>
+      </div>
+      <button class="btn-auth" onclick="doLogin()">Đăng nhập</button>
+      <div class="auth-footer-text">Chưa có tài khoản? <a onclick="switchAuthTab('register')">Đăng ký ngay</a></div>
+    </div>
+
+    <!-- ── Register form ── -->
+    <div class="auth-form" id="form-register">
+      <div class="auth-field">
+        <label>Họ và tên</label>
+        <input type="text" id="reg-name" placeholder="Nguyễn Văn A" autocomplete="name">
+      </div>
+      <div class="auth-field">
+        <label>Email</label>
+        <input type="email" id="reg-email" placeholder="ten@email.com" autocomplete="email">
+      </div>
+      <div class="auth-field">
+        <label>Số điện thoại</label>
+        <input type="tel" id="reg-phone" placeholder="0912 345 678" maxlength="11">
+      </div>
+      <div class="auth-field">
+        <label>Mật khẩu</label>
+        <input type="password" id="reg-pass" placeholder="Tối thiểu 6 ký tự" autocomplete="new-password">
+      </div>
+      <div class="auth-field">
+        <label>Xác nhận mật khẩu</label>
+        <input type="password" id="reg-pass2" placeholder="Nhập lại mật khẩu" autocomplete="new-password">
+      </div>
+      <button class="btn-auth" onclick="doRegister()">Tạo tài khoản</button>
+      <div class="auth-footer-text" style="margin-top:.5rem">Đã có tài khoản? <a onclick="switchAuthTab('login')">Đăng nhập</a></div>
+    </div>
+
+    <!-- ── Forgot password form ── -->
+    <div class="auth-form" id="form-forgot">
+      <div style="font-size:13px;color:#666;margin-bottom:1rem;line-height:1.6">Nhập email của bạn, chúng tôi sẽ gửi link đặt lại mật khẩu.</div>
+      <div class="auth-field">
+        <label>Email</label>
+        <input type="email" id="forgot-email" placeholder="ten@email.com">
+      </div>
+      <button class="btn-auth" onclick="doForgotPassword()">Gửi link đặt lại</button>
+      <div class="auth-footer-text" style="margin-top:.75rem"><a onclick="switchAuthTab('login')">← Quay lại đăng nhập</a></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  /* ══════════════════════════════════════
+     FIREBASE CONFIGURATION
+  ══════════════════════════════════════ */
+  const firebaseConfig = {
+    apiKey: "AIzaSyCqwaQipTOkI_m0nRu03Eh3fZPFLuPLgrw",
+    authDomain: "webapp-c790f.firebaseapp.com",
+    projectId: "webapp-c790f",
+    storageBucket: "webapp-c790f.firebasestorage.app",
+    messagingSenderId: "115726036119",
+    appId: "1:115726036119:web:705eb63fa810584a578dd2",
+    measurementId: "G-0F1TX3YW32"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const auth    = firebase.auth();
+  const db      = firebase.firestore();
+
+  /*Constants*/
+  const PAGE_SIZE = 8;
+
+  const TYPE_CFG = {
+    lost:    { cls: 'badge-lost',    label: '🚨 Mất đồ',     icon: '📦' },
+    found:   { cls: 'badge-found',   label: 'Nhặt được',  icon: '🎁' },
+    pet:     { cls: 'badge-pet',     label: '🐾 Thú cưng',   icon: '🐾' },
+    vehicle: { cls: 'badge-vehicle', label: '🚗 Xe cộ',      icon: '🚗' },
+    person:  { cls: 'badge-person',  label: '👤 Tìm người',  icon: '👤' },
+  };
+
+  // State
+  let imgDataUrl = null;
+  let activeTab  = 'all';
+  let currentPage = 1;
+  let revealedPhones = new Set();
+  let matchedPosts   = new Set();
+  let flaggedPosts   = new Set();
+
+  //
+  let posts = [];
+
+  //Helpers
+  function timeAgo(ts) {
+    const d = (Date.now() - ts) / 1000;
+    if (d < 60)    return 'Vừa đăng';
+    if (d < 3600)  return Math.floor(d / 60) + ' phút trước';
+    if (d < 86400) return Math.floor(d / 3600) + ' giờ trước';
+    return Math.floor(d / 86400) + ' ngày trước';
+  }
+
+  function maskPhone(p) {
+    if (!p || p.length < 8) return p;
+    return p.slice(0, 3) + 'x xxx x' + p.slice(-2);
+  }
+
+  let imgFile = null;
+  
+  /* Đọc file ảnh thành đối tượng Image để xử lý trên canvas */
+  function loadImageFromFile(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => reject(new Error('Không đọc được file ảnh.'));
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onerror = () => reject(new Error('File này không phải ảnh hợp lệ.'));
+        img.onload = () => resolve(img);
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function drawToDataUrl(img, maxDim, quality) {
+    let { width, height } = img;
+    if (width > maxDim || height > maxDim) {
+      if (width >= height) { height = Math.round(height * maxDim / width); width = maxDim; }
+      else                  { width  = Math.round(width  * maxDim / height); height = maxDim; }
+    }
+    const canvas = document.createElement('canvas');
+    canvas.width = width; canvas.height = height;
+    canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+    return canvas.toDataURL('image/jpeg', quality);
+  }
+
+  /* Nén ảnh để lưu trực tiếp vào Firestore (giới hạn 1MB/document) */
+  async function compressImageToBase64(file) {
+    const img = await loadImageFromFile(file);
+    let maxDim = 1000, quality = 0.75;
+    let dataUrl = drawToDataUrl(img, maxDim, quality);
+    let tries = 0;
+    while (dataUrl.length > 700000 && tries < 5) {
+      maxDim   = Math.round(maxDim * 0.75);
+      quality  = Math.max(0.35, quality - 0.15);
+      dataUrl  = drawToDataUrl(img, maxDim, quality);
+      tries++;
+    }
+    if (dataUrl.length > 900000) throw new Error('Ảnh vẫn quá lớn sau khi nén.');
+    return dataUrl;
+  }
+
+  function previewImg(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    imgFile = file;
+    document.getElementById('upload-text').textContent = '⏳ Đang nén ảnh...';
+    compressImageToBase64(file).then(dataUrl => {
+      imgDataUrl = dataUrl;
+      const el = document.getElementById('img-preview');
+      el.src = imgDataUrl;
+      el.style.display = 'block';
+      document.getElementById('upload-text').textContent = '✅ ' + file.name + ' (~' + Math.round(dataUrl.length / 1024) + 'KB sau khi nén)';
+    }).catch(err => {
+      console.error(err);
+      imgFile = null;
+      imgDataUrl = null;
+      document.getElementById('upload-text').textContent = 'Bấm để chọn ảnh (JPG, PNG...)';
+      showToast('❌ Ảnh quá nặng hoặc bị lỗi, vui lòng chọn ảnh khác.');
+    });
+  }
+
+
+  /* ── Filtering & Sorting ── */
+  function getFiltered() {
+    const q      = (document.getElementById('search-input').value || '').toLowerCase();
+    const dist   = document.getElementById('district-filter').value;
+    const sort   = document.getElementById('sort-select').value;
+    const status = (document.getElementById('fp-status') || {}).value || '';
+    const urgent = (document.getElementById('fp-urgent') || {}).value || '';
+    const dateFrom = (document.getElementById('fp-date-from') || {}).value || '';
+    const dateTo   = (document.getElementById('fp-date-to') || {}).value || '';
+
+    let list = posts.filter(p => {
+      if (activeTab !== 'all' && p.type !== activeTab) return false;
+      if (dist && p.district !== dist) return false;
+      if (status && p.status !== status) return false;
+      if (urgent === 'urgent' && !p.isUrgent) return false;
+      if (urgent === 'reward' && !p.reward) return false;
+      if (dateFrom && p.date && p.date < dateFrom) return false;
+      if (dateTo   && p.date && p.date > dateTo)   return false;
+      if (q) {
+        const hay = (p.name + p.location + p.district + p.desc).toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+
+    if (sort === 'urgent') {
+      list.sort((a, b) => {
+        if (a.isUrgent !== b.isUrgent) return b.isUrgent ? 1 : -1;
+        return b.time - a.time;
+      });
+    } else if (sort === 'views') {
+      list.sort((a, b) => b.views - a.views);
+    } else {
+      list.sort((a, b) => b.time - a.time);
+    }
+    return list;
+  }
+
+  /* ── Tab switching ── */
+  function setTab(t, el) {
+    activeTab = t;
+    currentPage = 1;
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+    el.classList.add('active');
+    renderFeed();
+  }
+
+  function onFilter() {
+    currentPage = 1;
+    renderFeed();
+    updateFilterBadge();
+  }
+
+  function toggleFilterPanel() {
+    const panel = document.getElementById('filter-panel');
+    const btn   = document.getElementById('filter-more-btn');
+    panel.classList.toggle('open');
+    btn.classList.toggle('open');
+  }
+
+  function resetFilters() {
+    ['fp-status','fp-urgent','fp-date-from','fp-date-to'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = '';
+    });
+    document.getElementById('district-filter').value = '';
+    document.getElementById('sort-select').value = 'newest';
+    updateFilterBadge();
+    onFilter();
+  }
+
+  function updateFilterBadge() {
+    const btn = document.getElementById('filter-more-btn');
+    const hasActive = ['fp-status','fp-urgent','fp-date-from','fp-date-to'].some(id => {
+      const el = document.getElementById(id); return el && el.value;
+    });
+    btn.classList.toggle('has-active', hasActive);
+    const icon = hasActive ? '⚙️ Bộ lọc ●' : '⚙️ Bộ lọc';
+    btn.childNodes[0].textContent = icon.split('<')[0];
+    btn.firstChild.textContent = hasActive ? '⚙️ Bộ lọc ● ' : '⚙️ Bộ lọc ';
+  }
+
+  /* ── Render ── */
+  function renderFeed() {
+    const filtered = getFiltered();
+
+    // Stats
+    document.getElementById('total-count').textContent  = posts.length;
+    document.getElementById('lost-count').textContent   = posts.filter(p => p.type === 'lost').length;
+    document.getElementById('found-count').textContent  = posts.filter(p => p.type === 'found').length;
+    document.getElementById('closed-count').textContent = posts.filter(p => p.status === 'closed').length;
+    document.getElementById('urgent-count').textContent = posts.filter(p => p.isUrgent && p.status === 'open').length;
+
+    const feed = document.getElementById('feed');
+    const lmw  = document.getElementById('load-more-wrap');
+
+    if (!filtered.length) {
+      feed.innerHTML = '<div class="empty"><div class="empty-icon">🔍</div>Không có tin nào phù hợp</div>';
+      lmw.innerHTML  = '';
+      return;
+    }
+
+    const visible  = filtered.slice(0, currentPage * PAGE_SIZE);
+    const remaining = filtered.length - visible.length;
+
+    feed.innerHTML = visible.map(p => {
+      const tc = TYPE_CFG[p.type];
+      const isRevealed = revealedPhones.has(p.id);
+      const isMatched  = matchedPosts.has(p.id);
+      const isFlagged  = flaggedPosts.has(p.id);
+
+      const imgSection = p.img
+        ? `<div class="card-img-wrap"><img class="card-img" src="${p.img}" alt="${p.name}"></div>`
+        : `<div class="card-img-wrap"><div class="card-img-placeholder">${tc.icon}<span>Chưa có ảnh</span></div></div>`;
+
+      const urgentBadge = (p.isUrgent && p.status === 'open')
+        ? `<span class="badge badge-urgent">⚡ KHẨN</span>` : '';
+      const closedBadge = p.status === 'closed'
+        ? `<span class="badge badge-closed">✔ Đã tìm thấy</span>` : '';
+      const rewardBadge = p.reward
+        ? `<span class="badge badge-reward">🎁 ${p.reward}</span>` : '';
+      const newTag = p.isNew ? `<span class="new-tag">MỚI</span>` : '';
+
+      const dateStr = p.date ? `<span>📅 ${p.date}</span>` : '';
+
+      const phoneHtml = p.phone ? `
+        <div class="card-phone">📞
+          ${isRevealed
+            ? `<span class="phone-masked" style="color:#166534">${p.phone}</span>`
+            : `<span class="phone-masked" onclick="revealPhone('${p.id}')">${maskPhone(p.phone)} <span class="phone-hint">(bấm để xem)</span></span>`}
+        </div>` : '';
+
+      const matchBtn = `<button class="btn-action${isMatched ? ' active-match' : ''}" onclick="toggleMatch('${p.id}')"> ${p.type === 'care' ? 'Quan tâm' : '👀 Quan tâm'} (${p.matches})</button>` ;
+      
+      const resolveBtn = p.status === 'open'
+        ? `<button class="btn-action resolve" onclick="resolvePost('${p.id}')">✅ Đã tìm thấy</button>`
+        : `<button class="btn-action" onclick="resolvePost('${p.id}')">↩️ Mở lại</button>`;
+
+      return `
+        <div class="card${p.isUrgent && p.status==='open' ? ' is-urgent' : ''}${p.status==='closed' ? ' is-closed' : ''}">
+          <div class="card-body">
+            <div class="card-top">
+              <div class="card-badges">
+                <span class="badge ${tc.cls}">${tc.label}</span>
+                ${urgentBadge}${closedBadge}${rewardBadge}${newTag}
+              </div>
+              <span class="time-label">${timeAgo(p.time)}</span>
+            </div>
+            <div class="card-title">${p.name}</div>
+            <div class="card-meta">
+              <span>📍 ${p.district}</span>
+              <span>🏢 ${p.location}</span>
+              ${dateStr}
+            </div>
+            <div class="card-desc">${p.desc}</div>
+            ${phoneHtml}
+            <div class="card-actions">
+              ${matchBtn}
+              ${resolveBtn}
+              <button class="btn-action" onclick="sharePost('${p.id}')">📤 Chia sẻ</button>
+              <button class="btn-action${isFlagged ? ' active-flag' : ''}" onclick="toggleFlag('${p.id}')" title="Báo cáo nghi ngờ lừa đảo">
+                ${isFlagged ? '⚠️ Đã báo cáo' : '🚩 Báo cáo'}
+              </button>
+              <div class="card-views">👁 ${p.views}</div>
+            </div>
+          </div>
+          ${imgSection}
+        </div>`;
+    }).join('');
+
+    lmw.innerHTML = remaining > 0
+      ? `<button class="btn-load-more" onclick="loadMore()">Xem thêm ${Math.min(PAGE_SIZE, remaining)} tin nữa ↓</button>`
+      : '';
+  }
+
+  /* ── Actions ── */
+  function loadMore() {
+    currentPage++;
+    renderFeed();
+  }
+
+  function revealPhone(id) {
+    revealedPhones.add(id);
+    db.collection('posts').doc(id).update({ views: firebase.firestore.FieldValue.increment(1) }).catch(() => {});
+    renderFeed();
+  }
+
+  function toggleMatch(id) {
+    if (matchedPosts.has(id)) {
+      matchedPosts.delete(id);
+      db.collection('posts').doc(id).update({ matches: firebase.firestore.FieldValue.increment(-1) }).catch(() => {});
+      showToast('↩️ Đã bỏ ghi nhận');
+    } else {
+      matchedPosts.add(id);
+      db.collection('posts').doc(id).update({ matches: firebase.firestore.FieldValue.increment(1) }).catch(() => {});
+      showToast('👍 Đã ghi nhận! Hãy liên hệ người đăng tin.');
+    }
+  }
+
+  function toggleFlag(id) {
+    if (flaggedPosts.has(id)) {
+      flaggedPosts.delete(id);
+      showToast('Đã bỏ báo cáo');
+    } else {
+      flaggedPosts.add(id);
+      showToast('⚠️ Đã báo cáo tin nghi ngờ lừa đảo. Cảm ơn bạn!');
+    }
+    renderFeed();
+  }
+
+  function resolvePost(id) {
+    const p = posts.find(x => x.id === id);
+    if (!p) return;
+    const newStatus = p.status === 'open' ? 'closed' : 'open';
+    db.collection('posts').doc(id).update({ status: newStatus })
+      .then(() => showToast(newStatus === 'closed' ? '✅ Đã đánh dấu "Đã tìm thấy" — Chúc mừng!' : '↩️ Đã mở lại tin đăng'))
+      .catch(() => showToast('❌ Lỗi, vui lòng thử lại'));
+  }
+
+  function sharePost(id) {
+    const p = posts.find(x => x.id === id);
+    if (!p) return;
+    const tc   = TYPE_CFG[p.type];
+    const text = `[${tc.label}] ${p.name} – ${p.district}, Hà Nội\n${p.desc}`;
+    if (navigator.share) {
+      navigator.share({ title: p.name, text, url: window.location.href }).catch(() => {});
+    } else {
+      navigator.clipboard.writeText(text + '\n' + window.location.href)
+        .then(() => showToast('📋 Đã sao chép thông tin tin đăng!'))
+        .catch(() => showToast('Không thể sao chép — vui lòng thử lại'));
+    }
+  }
+
+  /* ── Modal ── */
+  function openModal() {
+    if (!currentUser) { requireAuthThenPost(); return; }
+    imgDataUrl = null;
+    imgFile = null;
+    document.getElementById('img-preview').style.display = 'none';
+    document.getElementById('upload-text').textContent = 'Bấm để chọn ảnh (JPG, PNG...)';
+    document.getElementById('f-urgent').checked = false;
+    document.getElementById('f-date').value = new Date().toISOString().slice(0, 10);
+    ['f-name','f-location','f-desc','f-phone','f-reward'].forEach(id => {
+      document.getElementById(id).value = '';
+    });
+    document.getElementById('modal').style.display = 'flex';
+  }
+
+  function closeModal() {
+    document.getElementById('modal').style.display = 'none';
+  }
+
+  function handleOverlayClick(e) {
+    if (e.target.id === 'modal') closeModal();
+  }
+
+  /* ── Submit ── */
+  async function submitPost() {
+    if (!currentUser) { showToast('🔒 Vui lòng đăng nhập để đăng tin.'); return; }
+
+    const name     = document.getElementById('f-name').value.trim();
+    const location = document.getElementById('f-location').value.trim();
+    const phone    = document.getElementById('f-phone').value.trim();
+
+    if (!name || !location) { alert('Vui lòng điền tên đồ vật và địa điểm!'); return; }
+    if (!phone)              { alert('Vui lòng nhập số điện thoại liên hệ!'); return; }
+    if (!/^0\d{9,10}$/.test(phone)) { alert('Số điện thoại không hợp lệ (VD: 0912345678)'); return; }
+
+    const submitBtn = document.querySelector('.modal-btns .btn-primary');
+    const oldLabel = submitBtn ? submitBtn.textContent : '';
+    if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Đang đăng...'; }
+
+    try {
+      const newPost = {
+        type:     document.getElementById('f-type').value,
+        name,
+        district: document.getElementById('f-district').value,
+        location,
+        phone,
+        desc:     document.getElementById('f-desc').value.trim() || 'Không có mô tả thêm.',
+        img:      imgDataUrl || null,
+        time:     Date.now(),
+        date:     document.getElementById('f-date').value,
+        isUrgent: document.getElementById('f-urgent').checked,
+        reward:   document.getElementById('f-reward').value.trim(),
+        status:   'open',
+        views:    0,
+        matches:  0,
+        authorUid: currentUser.uid,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      };
+
+      await db.collection('posts').add(newPost);
+      closeModal();
+      showToast('✅ Đã đăng tin thành công!');
+    } catch (err) {
+      console.error(err);
+      showToast('❌ Đăng tin lỗi, vui lòng thử lại.');
+    } finally {
+      if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = oldLabel; }
+    }
+  }
+
+  /* ── Toast ── */
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2600);
+  }
+
+  /* ── Init: realtime listener from Firestore ── */
+  db.collection('posts').orderBy('createdAt', 'desc').onSnapshot(snapshot => {
+    posts = snapshot.docs.map(doc => {
+      const d = doc.data();
+      return { id: doc.id, ...d, isNew: (Date.now() - (d.time || 0)) < 60000 };
+    });
+    renderFeed();
+  }, err => {
+    console.error('Firestore listener error:', err);
+    showToast('❌ Không tải được dữ liệu. Kiểm tra Firebase config.');
+  });
+
+  setInterval(renderFeed, 30000);
+
+  /* ══════════════════════════════════════
+     AUTH SYSTEM
+  ══════════════════════════════════════ */
+
+  let currentUser = null; // { uid, name, email, phone }
+
+  auth.onAuthStateChanged(async (fbUser) => {
+    if (fbUser) {
+      let profile = {};
+      try {
+        const snap = await db.collection('users').doc(fbUser.uid).get();
+        if (snap.exists) profile = snap.data();
+      } catch (e) { console.error(e); }
+      currentUser = {
+        uid:   fbUser.uid,
+        name:  profile.name || fbUser.displayName || fbUser.email,
+        email: fbUser.email,
+        phone: profile.phone || '',
+      };
+      setLoggedInUI();
+    } else {
+      currentUser = null;
+      setLoggedOutUI();
+    }
+  });
+
+  function setLoggedInUI() {
+    const btn = document.getElementById('acct-btn');
+    btn.classList.add('logged-in');
+    const initials = (currentUser.name || 'U').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
+    document.getElementById('acct-avatar').textContent = initials;
+    document.getElementById('acct-name').textContent   = currentUser.name ? currentUser.name.split(' ').pop() : '';
+    document.getElementById('acct-dd-username').textContent = currentUser.name || currentUser.email;
+    document.getElementById('acct-dd-email').textContent    = currentUser.email;
+    document.getElementById('acct-dd-header').classList.add('visible');
+    document.getElementById('dd-guest-section').style.display  = 'none';
+    document.getElementById('dd-user-section').style.display   = 'block';
+    document.getElementById('dd-logout-section').style.display = 'block';
+  }
+
+  function setLoggedOutUI() {
+    const btn = document.getElementById('acct-btn');
+    btn.classList.remove('logged-in', 'open');
+    document.getElementById('acct-dd-header').classList.remove('visible');
+    document.getElementById('dd-guest-section').style.display  = 'block';
+    document.getElementById('dd-user-section').style.display   = 'none';
+    document.getElementById('dd-logout-section').style.display = 'none';
+    document.getElementById('acct-dropdown').classList.remove('open');
+  }
+
+  /* ── Account dropdown toggle ── */
+  function toggleAcctDropdown() {
+    const btn = document.getElementById('acct-btn');
+    const dd  = document.getElementById('acct-dropdown');
+    const open = dd.classList.toggle('open');
+    btn.classList.toggle('open', open);
+  }
+
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('.header-actions')) {
+      document.getElementById('acct-dropdown').classList.remove('open');
+      document.getElementById('acct-btn').classList.remove('open');
+    }
+  });
+
+  /* ── Open / close auth modal ── */
+  function openAuth(tab) {
+    document.getElementById('acct-dropdown').classList.remove('open');
+    document.getElementById('acct-btn').classList.remove('open');
+    clearAuthMessages();
+    document.getElementById('auth-modal').style.display = 'flex';
+    switchAuthTab(tab || 'login');
+    ['login-email','login-pass','reg-name','reg-email','reg-phone','reg-pass','reg-pass2','forgot-email']
+      .forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
+  }
+
+  function closeAuth() { document.getElementById('auth-modal').style.display = 'none'; }
+  function handleAuthOverlay(e) { if (e.target.id === 'auth-modal') closeAuth(); }
+
+  function switchAuthTab(tab) {
+    ['login','register','forgot'].forEach(t => {
+      document.getElementById('form-' + t).classList.remove('active');
+      const tabEl = document.getElementById('tab-' + t);
+      if (tabEl) tabEl.classList.remove('active');
+    });
+    document.getElementById('form-' + tab).classList.add('active');
+    const activeTabEl = document.getElementById('tab-' + tab);
+    if (activeTabEl) activeTabEl.classList.add('active');
+    const subtitles = { login: 'Đăng nhập để đăng tin và theo dõi', register: 'Tạo tài khoản miễn phí', forgot: 'Khôi phục mật khẩu' };
+    document.getElementById('auth-subtitle').textContent = subtitles[tab] || '';
+    clearAuthMessages();
+  }
+
+  function clearAuthMessages() {
+    ['auth-error','auth-success'].forEach(id => {
+      const el = document.getElementById(id); el.style.display = 'none'; el.textContent = '';
+    });
+  }
+  function showAuthError(msg)   { const el = document.getElementById('auth-error');   el.textContent = '⚠️ ' + msg; el.style.display = 'block'; }
+  function showAuthSuccess(msg) { const el = document.getElementById('auth-success'); el.textContent = '✅ ' + msg; el.style.display = 'block'; }
+
+  //Dịch mã lỗi 
+  function authErrMsg(err) {
+    const map = {
+      'auth/invalid-email':        'Email không hợp lệ.',
+      'auth/user-not-found':       'Email hoặc mật khẩu không đúng.',
+      'auth/wrong-password':       'Email hoặc mật khẩu không đúng.',
+      'auth/invalid-credential':   'Email hoặc mật khẩu không đúng.',
+      'auth/email-already-in-use': 'Email này đã được đăng ký.',
+      'auth/weak-password':        'Mật khẩu tối thiểu 6 ký tự.',
+      'auth/too-many-requests':    'Bạn thử quá nhiều lần, vui lòng thử lại sau.',
+    };
+    return map[err.code] || 'Có lỗi xảy ra, vui lòng thử lại.';
+  }
+
+  /* ── Login ── */
+  async function doLogin() {
+    clearAuthMessages();
+    const email = document.getElementById('login-email').value.trim().toLowerCase();
+    const pass  = document.getElementById('login-pass').value;
+    if (!email) { showAuthError('Vui lòng nhập email.'); return; }
+    if (!pass)  { showAuthError('Vui lòng nhập mật khẩu.'); return; }
+    try {
+      await auth.signInWithEmailAndPassword(email, pass);
+      closeAuth();
+      showToast('👋 Chào mừng trở lại!');
+    } catch (err) {
+      showAuthError(authErrMsg(err));
+    }
+  }
+
+  /* ── Register ── */
+  async function doRegister() {
+    clearAuthMessages();
+    const name  = document.getElementById('reg-name').value.trim();
+    const email = document.getElementById('reg-email').value.trim().toLowerCase();
+    const phone = document.getElementById('reg-phone').value.trim();
+    const pass  = document.getElementById('reg-pass').value;
+    const pass2 = document.getElementById('reg-pass2').value;
+    if (!name)  { showAuthError('Vui lòng nhập họ và tên.'); return; }
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showAuthError('Email không hợp lệ.'); return; }
+    if (phone && !/^0\d{9,10}$/.test(phone)) { showAuthError('Số điện thoại không hợp lệ.'); return; }
+    if (!pass || pass.length < 6) { showAuthError('Mật khẩu tối thiểu 6 ký tự.'); return; }
+    if (pass !== pass2) { showAuthError('Mật khẩu xác nhận không khớp.'); return; }
+    try {
+      const cred = await auth.createUserWithEmailAndPassword(email, pass);
+      await cred.user.updateProfile({ displayName: name });
+      await db.collection('users').doc(cred.user.uid).set({ name, email, phone, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+      closeAuth();
+      showToast('🎉 Đăng ký thành công! Chào mừng, ' + name + '!');
+    } catch (err) {
+      showAuthError(authErrMsg(err));
+    }
+  }
+
+  //Forgot password 
+  async function doForgotPassword() {
+    clearAuthMessages();
+    const email = document.getElementById('forgot-email').value.trim().toLowerCase();
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showAuthError('Vui lòng nhập email hợp lệ.'); return; }
+    try {
+      await auth.sendPasswordResetEmail(email);
+      showAuthSuccess('Đã gửi link đặt lại đến ' + email + '. Vui lòng kiểm tra hộp thư. Nếu không thấy hãy kiểm tra hộp thư spam.');
+      document.getElementById('forgot-email').value = '';
+    } catch (err) {
+      showAuthError(authErrMsg(err));
+    }
+  }
+
+  //
+  function logout() {
+    auth.signOut();
+    showToast('👋 Đã đăng xuất thành công.');
+  }
+
+  //
+  function requireAuthThenPost() {
+    if (!currentUser) { openAuth('login'); showToast('🔒 Vui lòng đăng nhập để đăng tin.'); }
+    else openModal();
+  }
+
+  //
+  document.addEventListener('keydown', function(e) {
+    if (e.key !== 'Enter') return;
+    const af = document.querySelector('.auth-form.active');
+    if (!af) return;
+    if (af.id === 'form-login')    doLogin();
+    if (af.id === 'form-register') doRegister();
+    if (af.id === 'form-forgot')   doForgotPassword();
+  });
+
+  // toggle Dark / Light Mode 
+  function toggleTheme() {
+    const isDark = document.body.classList.toggle('dark-mode');
+    document.getElementById('theme-toggle-btn').textContent = isDark ? '☀️' : '🌙';
+    try { localStorage.setItem('theme', isDark ? 'dark' : 'light'); } catch(e) {}
+  }
+
+  //
+  (function() {
+    let saved;
+    try { saved = localStorage.getItem('theme'); } catch(e) {}
+    if (!saved) {
+      // Tự động theo theme hệ thống nếu chưa có lựa chọn
+      saved = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    if (saved === 'dark') {
+      document.body.classList.add('dark-mode');
+      document.getElementById('theme-toggle-btn').textContent = '☀️';
+    }
+  })();
+</script>
+</body>
+</html>
