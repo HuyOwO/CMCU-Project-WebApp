@@ -1,14 +1,13 @@
 # 🔍 Đồ Thất Lạc HN
 
-Website đăng tin tìm đồ thất lạc / nhặt được ở Hà Nội. Đồ án môn Phát triển Web —
-kiến trúc **frontend + backend tách biệt**, triển khai bằng các dịch vụ **miễn phí**.
+Website đăng tin tìm đồ thất lạc / nhặt được ở Hà Nội. Đồ án môn Phát triển Web Khóa 4 Trường Đại Học CMC. 
 
 ---
 
 ## 1. Tính năng chính
 
 - Đăng tin mất đồ / nhặt được / thú cưng / xe cộ / tìm người, kèm ảnh (nén phía client).
-- Đăng ký / đăng nhập bằng email + mật khẩu (JWT), quên mật khẩu qua email.
+- Đăng ký / đăng nhập bằng email + mật khẩu, quên mật khẩu qua email.
 - Lọc theo loại tin, quận, trạng thái, tin khẩn cấp/có thưởng, khoảng ngày, tìm kiếm theo từ khoá.
 - Sắp xếp theo mới nhất / khẩn cấp / lượt xem, phân trang kiểu "Xem thêm".
 - Đánh dấu "Quan tâm", đánh dấu "Đã tìm thấy" (chỉ chủ tin), chia sẻ, báo cáo tin nghi ngờ.
@@ -99,9 +98,6 @@ npm run dev                # chạy với nodemon tại http://localhost:5000
 Frontend là file tĩnh, không cần build. Cách đơn giản nhất: cài extension **Live Server** trong VS Code,
 click phải vào `frontend/index.html` → "Open with Live Server" (thường chạy ở `http://127.0.0.1:5500`).
 
-Vì `frontend/js/config.js` đã tự nhận diện `localhost`/`127.0.0.1` để trỏ về
-`http://localhost:5000/api`, nên không cần sửa gì thêm khi chạy local.
-
 > ⚠️ Nhớ thêm đúng địa chỉ Live Server (VD: `http://127.0.0.1:5500`) vào `CLIENT_ORIGIN` trong file
 > `backend/.env`, nếu không request sẽ bị chặn bởi CORS.
 
@@ -124,7 +120,7 @@ Vì `frontend/js/config.js` đã tự nhận diện `localhost`/`127.0.0.1` đ�
 cd dothatlac-hn
 git init
 git add .
-git commit -m "Khởi tạo dự án Đồ Thất Lạc HN — frontend + backend"
+git commit -m "[Tin nhắn commit]"
 git branch -M main
 git remote add origin https://github.com/<username>/<ten-repo>.git
 git push -u origin main
@@ -200,14 +196,11 @@ deploy lại. Vậy là frontend (GitHub Pages) ↔ backend (Render) ↔ databas
 | POST   | `/api/posts/:id/reveal`                      | Xem số điện thoại (tăng lượt xem)                              | ✗ |
 | DELETE | `/api/posts/:id`                              | Xoá tin — chỉ chủ tin                                            | ✓ |
 
-## 9. Một số quyết định thiết kế (đáng nói khi bảo vệ đồ án)
+## 9. Một số quyết định thiết kế
 
 - **Vì sao Node.js/Express thay vì Firebase?** Bản gốc dùng Firebase (BaaS) gọi thẳng từ frontend.
   Bản này tách riêng backend để thể hiện rõ kỹ năng thiết kế REST API, MVC, xác thực JWT, và
   quyền hạn (chỉ chủ tin mới sửa/xoá được tin của mình) — những phần Firebase "giấu" hộ mình.
-- **Vì sao lưu ảnh base64 trong MongoDB thay vì dùng dịch vụ lưu file riêng?** Ảnh được nén phía
-  client xuống dưới ~900KB (dùng canvas), nằm gọn trong giới hạn 16MB/document của MongoDB — tránh
-  phải trả phí / xin thêm 1 dịch vụ lưu trữ file khác, phù hợp tiêu chí "chỉ dùng dịch vụ free".
 - **Vì sao polling thay vì WebSocket/Socket.IO?** Bản gốc dùng `onSnapshot` của Firestore để realtime.
   Ở đây dùng `setInterval` gọi lại API mỗi 30s — đơn giản, dễ giải thích, và tránh rủi ro mất kết nối
   WebSocket khi Render free tier "ngủ" sau 15 phút không hoạt động.
