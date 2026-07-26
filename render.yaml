@@ -1,0 +1,31 @@
+# Render Blueprint — cho phép deploy backend chỉ bằng vài cú click
+# Cách dùng: vào https://dashboard.render.com/blueprints -> New Blueprint Instance
+# -> chọn repo GitHub này -> Render tự đọc file này để tạo service.
+# (Vẫn có thể tạo Web Service thủ công qua dashboard nếu không muốn dùng Blueprint,
+#  xem hướng dẫn chi tiết trong README.md)
+
+services:
+  - type: web
+    name: dothatlac-hn-backend
+    env: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: MONGODB_URI
+        sync: false # điền thủ công trong dashboard Render (chuỗi kết nối MongoDB Atlas)
+      - key: JWT_SECRET
+        generateValue: true # Render tự sinh 1 chuỗi bí mật ngẫu nhiên
+      - key: JWT_EXPIRE
+        value: 30d
+      - key: CLIENT_ORIGIN
+        sync: false # điền URL GitHub Pages của bạn, VD: https://<user>.github.io
+      - key: CLIENT_RESET_URL
+        sync: false # VD: https://<user>.github.io/<repo>/reset-password.html
+      - key: EMAIL_SERVICE
+        value: gmail
+      - key: EMAIL_USER
+        sync: false # tuỳ chọn, để trống nếu chưa cần gửi email thật
+      - key: EMAIL_PASS
+        sync: false

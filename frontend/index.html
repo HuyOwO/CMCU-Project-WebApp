@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Đồ Thất Lạc Hà Nội</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- ── Header ── -->
+<div class="header">
+  <div class="logo">
+    🔍 <span>Đồ Thất Lạc HN</span>
+    <div class="live-dot" title="Cập nhật realtime"></div>
+  </div>
+
+  <!-- Search bar in header -->
+  <div class="header-search">
+    <input type="text" id="search-input" placeholder="Tìm theo tên đồ, địa điểm, mô tả..." oninput="onFilter()">
+    <button class="header-search-btn" onclick="onFilter()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round">
+        <circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+    </button>
+  </div>
+
+  <div class="header-actions">
+    <!-- Theme toggle button -->
+    <button class="theme-toggle-btn" id="theme-toggle-btn" onclick="toggleTheme()" title="Chuyển dark/light mode">🌙</button>
+
+    <!-- Icon button (chưa/đã đăng nhập đều dùng chung) -->
+    <div class="acct-btn" id="acct-btn" onclick="toggleAcctDropdown()">
+      <!-- Icon người dùng (khi chưa đăng nhập) -->
+      <svg class="acct-icon-svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#374151" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+      </svg>
+      <!-- Avatar chữ cái (khi đã đăng nhập) -->
+      <div class="acct-avatar" id="acct-avatar">U</div>
+      <span class="acct-name" id="acct-name"></span>
+      <span class="acct-chevron">▾</span>
+    </div>
+
+    <!-- Dropdown menu -->
+    <div class="acct-dropdown" id="acct-dropdown">
+      <!-- Phần info (chỉ hiện khi đã đăng nhập) -->
+      <div class="acct-dd-header" id="acct-dd-header">
+        <div class="acct-dd-username" id="acct-dd-username"></div>
+        <div class="acct-dd-email" id="acct-dd-email"></div>
+      </div>
+
+      <!-- Khi chưa đăng nhập -->
+      <div class="acct-dd-section" id="dd-guest-section">
+        <div class="acct-dd-item" onclick="openAuth('login')">Đăng nhập</div>
+        <div class="acct-dd-item" onclick="openAuth('register')"> Đăng ký</div>
+      </div>
+
+      <!-- Khi đã đăng nhập -->
+      <div class="acct-dd-section" id="dd-user-section" style="display:none">
+        <div class="acct-dd-item">      <span class="dd-icon">📋</span> Tin của tôi</div>
+        <div class="acct-dd-item">      <span class="dd-icon">⚙️</span> Cài đặt</div>
+      </div>
+      <div class="acct-dd-section" id="dd-logout-section" style="display:none">
+        <div class="acct-dd-item danger" onclick="logout()"><span class="dd-icon">🚪</span> Đăng xuất</div>
+      </div>
+    </div>
+
+    <button class="btn-primary" onclick="requireAuthThenPost()" style="padding:7px 14px;font-size:13px">+ Đăng tin</button>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- ── Stats ── -->
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-num" id="total-count">0</div>
+      <div class="stat-label">Tổng tin</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num" style="color:#991b1b" id="lost-count">0</div>
+      <div class="stat-label">Đang tìm</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num" style="color:#166534" id="found-count">0</div>
+      <div class="stat-label">Nhặt được</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num" style="color:#1d4ed8" id="closed-count">0</div>
+      <div class="stat-label">Đã tìm thấy</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num" style="color:#ef4444" id="urgent-count">0</div>
+      <div class="stat-label">Khẩn cấp</div>
+    </div>
+  </div>
+
+  <!-- ── Filter bar ── -->
+  <div class="filter-bar">
+    <!-- Category tabs -->
+    <div class="filter-tabs">
+      <button class="tab active" onclick="setTab('all',this)">Tất cả</button>
+      <button class="tab" onclick="setTab('lost',this)">🚨 Mất đồ</button>
+      <button class="tab" onclick="setTab('found',this)">Nhặt được</button>
+      <button class="tab" onclick="setTab('pet',this)">🐾 Thú cưng</button>
+      <button class="tab" onclick="setTab('vehicle',this)">🚗 Xe cộ</button>
+      <button class="tab" onclick="setTab('person',this)">👤 Tìm người</button>
+    </div>
+
+    <!-- District select inline -->
+    <select class="filter-select" id="district-filter" onchange="onFilter()">
+      <option value="">Tất cả quận</option>
+      <option>Hoàn Kiếm</option><option>Đống Đa</option><option>Hai Bà Trưng</option>
+      <option>Ba Đình</option><option>Cầu Giấy</option><option>Thanh Xuân</option>
+      <option>Long Biên</option><option>Hoàng Mai</option><option>Tây Hồ</option>
+      <option>Nam Từ Liêm</option><option>Bắc Từ Liêm</option><option>Hà Đông</option>
+    </select>
+
+    <!-- Sort select inline -->
+    <select class="filter-select" id="sort-select" onchange="onFilter()">
+      <option value="newest">⏱ Mới nhất</option>
+      <option value="urgent">⚡ Khẩn cấp</option>
+      <option value="views">👁 Lượt xem</option>
+    </select>
+
+    <!-- Bộ lọc nâng cao -->
+    <button class="filter-more-btn" id="filter-more-btn" onclick="toggleFilterPanel()">
+      ⚙️ Bộ lọc <span class="filter-more-chevron">▾</span>
+    </button>
+  </div>
+
+  <!-- ── Panel bộ lọc nâng cao ── -->
+  <div class="filter-panel" id="filter-panel">
+    <div class="filter-panel-grid">
+      <div>
+        <label>Trạng thái</label>
+        <select id="fp-status" onchange="onFilter()">
+          <option value="">Tất cả</option>
+          <option value="open">Đang tìm</option>
+          <option value="closed">Đã tìm thấy</option>
+        </select>
+      </div>
+      <div>
+        <label>Đặc điểm</label>
+        <select id="fp-urgent" onchange="onFilter()">
+          <option value="">Tất cả</option>
+          <option value="urgent">⚡ Chỉ tin khẩn cấp</option>
+          <option value="reward">🎁 Chỉ tin có thưởng</option>
+        </select>
+      </div>
+      <div>
+        <label>Từ ngày</label>
+        <input type="date" id="fp-date-from" onchange="onFilter()">
+      </div>
+      <div>
+        <label>Đến ngày</label>
+        <input type="date" id="fp-date-to" onchange="onFilter()">
+      </div>
+    </div>
+    <div class="filter-panel-actions">
+      <button class="btn-filter-reset" onclick="resetFilters()">Đặt lại</button>
+      <button class="btn-filter-apply" onclick="toggleFilterPanel()">Áp dụng</button>
+    </div>
+  </div>
+
+  <!-- ── Feed & Load more ── -->
+  <div id="feed"></div>
+  <div id="load-more-wrap"></div>
+
+</div>
+
+<!-- ── Modal đăng tin ── -->
+<div class="modal-bg" id="modal" style="display:none" onclick="handleOverlayClick(event)">
+  <div class="modal">
+    <h3>📝 Đăng tin mới</h3>
+
+    <div class="form-row">
+      <label>Loại tin</label>
+      <select id="f-type">
+        <option value="lost">🚨 Tôi bị mất đồ</option>
+        <option value="found">✅ Tôi nhặt được đồ</option>
+        <option value="pet">🐾 Thú cưng thất lạc</option>
+        <option value="vehicle">🚗 Xe cộ thất lạc</option>
+        <option value="person">👤 Tìm người thân</option>
+      </select>
+    </div>
+
+    <label class="urgent-label" for="f-urgent">
+      <input type="checkbox" id="f-urgent">
+      <div class="urgent-label-text">
+        <strong>🚨 Đánh dấu KHẨN CẤP</strong>
+        <span>Tin được ưu tiên hiển thị &amp; đánh dấu nổi bật</span>
+      </div>
+    </label>
+
+    <div class="form-row">
+      <label>Tên đồ vật / Đặc điểm nhận dạng *</label>
+      <input type="text" id="f-name" placeholder="VD: Ví da màu đen, Điện thoại iPhone 14...">
+    </div>
+
+    <div class="form-row-2">
+      <div class="form-row">
+        <label>Quận / Khu vực *</label>
+        <select id="f-district">
+          <option>Hoàn Kiếm</option><option>Đống Đa</option><option>Hai Bà Trưng</option>
+          <option>Ba Đình</option><option>Cầu Giấy</option><option>Thanh Xuân</option>
+          <option>Long Biên</option><option>Hoàng Mai</option><option>Tây Hồ</option>
+          <option>Nam Từ Liêm</option><option>Bắc Từ Liêm</option><option>Hà Đông</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label>Ngày mất / Tìm thấy</label>
+        <input type="date" id="f-date">
+      </div>
+    </div>
+
+    <div class="form-row">
+      <label>Địa điểm cụ thể *</label>
+      <input type="text" id="f-location" placeholder="VD: Hồ Hoàn Kiếm, Siêu thị BigC Thăng Long...">
+    </div>
+
+    <div class="form-row-2">
+      <div class="form-row">
+        <label>Số điện thoại liên hệ *</label>
+        <input type="tel" id="f-phone" placeholder="VD: 0912345678" maxlength="11">
+      </div>
+      <div class="form-row">
+        <label>Phần thưởng (nếu có)</label>
+        <input type="text" id="f-reward" placeholder="VD: 500.000 VNĐ">
+      </div>
+    </div>
+
+    <div class="form-row">
+      <label>Mô tả thêm</label>
+      <textarea id="f-desc" placeholder="Màu sắc, đặc điểm nhận dạng, hoàn cảnh mất..."></textarea>
+    </div>
+
+    <div class="form-row">
+      <label>Ảnh đồ vật</label>
+      <div class="img-upload-box" onclick="document.getElementById('f-img').click()">
+        <input type="file" id="f-img" accept="image/*" onchange="previewImg(event)" style="display:none">
+        <div class="upload-icon">📷</div>
+        <p id="upload-text">Bấm để chọn ảnh (JPG, PNG...)</p>
+        <img id="img-preview" class="img-preview" alt="preview">
+      </div>
+    </div>
+
+    <div class="modal-btns">
+      <button class="btn-ghost" onclick="closeModal()">Hủy</button>
+      <button class="btn-primary" onclick="submitPost()">Đăng ngay</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- ── Auth Modal ── -->
+<div class="auth-modal-bg" id="auth-modal" style="display:none" onclick="handleAuthOverlay(event)">
+  <div class="auth-modal" id="auth-modal-inner">
+    <button class="auth-modal-close" onclick="closeAuth()">✕</button>
+    <div class="auth-logo">🔍</div>
+    <div class="auth-title">Đồ Thất Lạc HN</div>
+    <div class="auth-subtitle" id="auth-subtitle">Đăng nhập để đăng tin và theo dõi</div>
+
+    <!-- Tabs -->
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tab-login" onclick="switchAuthTab('login')">Đăng nhập</button>
+      <button class="auth-tab" id="tab-register" onclick="switchAuthTab('register')">Đăng ký</button>
+    </div>
+
+    <!-- Error / Success alerts -->
+    <div class="auth-error" id="auth-error"></div>
+    <div class="auth-success" id="auth-success"></div>
+
+    <!-- ── Login form ── -->
+    <div class="auth-form active" id="form-login">
+      <div class="auth-field">
+        <label>Email</label>
+        <input type="email" id="login-email" placeholder="ten@email.com" autocomplete="email">
+      </div>
+      <div class="auth-field">
+        <label>Mật khẩu</label>
+        <input type="password" id="login-pass" placeholder="Nhập mật khẩu" autocomplete="current-password">
+        <div class="input-hint" style="font-size:11px;color:#aaa;margin-top:4px;text-align:right">
+          <a href="#" style="color:#2563eb;text-decoration:none;font-size:11px" onclick="switchAuthTab('forgot');return false">Quên mật khẩu?</a>
+        </div>
+      </div>
+      <button class="btn-auth" onclick="doLogin()">Đăng nhập</button>
+      <div class="auth-footer-text">Chưa có tài khoản? <a onclick="switchAuthTab('register')">Đăng ký ngay</a></div>
+    </div>
+
+    <!-- ── Register form ── -->
+    <div class="auth-form" id="form-register">
+      <div class="auth-field">
+        <label>Họ và tên</label>
+        <input type="text" id="reg-name" placeholder="Nguyễn Văn A" autocomplete="name">
+      </div>
+      <div class="auth-field">
+        <label>Email</label>
+        <input type="email" id="reg-email" placeholder="ten@email.com" autocomplete="email">
+      </div>
+      <div class="auth-field">
+        <label>Số điện thoại</label>
+        <input type="tel" id="reg-phone" placeholder="0912 345 678" maxlength="11">
+      </div>
+      <div class="auth-field">
+        <label>Mật khẩu</label>
+        <input type="password" id="reg-pass" placeholder="Tối thiểu 6 ký tự" autocomplete="new-password">
+      </div>
+      <div class="auth-field">
+        <label>Xác nhận mật khẩu</label>
+        <input type="password" id="reg-pass2" placeholder="Nhập lại mật khẩu" autocomplete="new-password">
+      </div>
+      <button class="btn-auth" onclick="doRegister()">Tạo tài khoản</button>
+      <div class="auth-footer-text" style="margin-top:.5rem">Đã có tài khoản? <a onclick="switchAuthTab('login')">Đăng nhập</a></div>
+    </div>
+
+    <!-- ── Forgot password form ── -->
+    <div class="auth-form" id="form-forgot">
+      <div style="font-size:13px;color:#666;margin-bottom:1rem;line-height:1.6">Nhập email của bạn, chúng tôi sẽ gửi link đặt lại mật khẩu.</div>
+      <div class="auth-field">
+        <label>Email</label>
+        <input type="email" id="forgot-email" placeholder="ten@email.com">
+      </div>
+      <button class="btn-auth" onclick="doForgotPassword()">Gửi link đặt lại</button>
+      <div class="auth-footer-text" style="margin-top:.75rem"><a onclick="switchAuthTab('login')">← Quay lại đăng nhập</a></div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════
+     Các file JS được tách module, load theo thứ tự phụ thuộc
+     ══════════════════════════════════════ -->
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/posts.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
