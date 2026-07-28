@@ -1,9 +1,8 @@
 /* ============================================================
    POSTS.JS — state + các hành động gọi API liên quan tới "tin đăng"
-   Thay thế db.collection('posts')... của Firestore bằng gọi REST API
    ============================================================ */
 
-const PAGE_SIZE = 8;
+const PAGE_SIZE = 9; // lưới 3 cột
 
 const TYPE_CFG = {
   lost: { cls: 'badge-lost', label: '🚨 Mất đồ', icon: '📦' },
@@ -13,26 +12,77 @@ const TYPE_CFG = {
   person: { cls: 'badge-person', label: '👤 Tìm người', icon: '👤' },
 };
 
-// State
-let posts = []; // danh sách tin đang hiển thị (đã tải tích luỹ theo trang)
-let activeTab = 'all';
+// Danh mục đồ vật — khớp với sidebar bộ lọc kiểu timdothatlac.vn
+const CATEGORY_CFG = {
+  wallet: { label: 'Ví/Giấy tờ', icon: '👛' },
+  pet: { label: 'Thú cưng (Chó/Mèo)', icon: '🐾' },
+  electronics: { label: 'Điện thoại/Tablet/Laptop', icon: '📱' },
+  household: { label: 'Đồ gia dụng, nội thất, cây cảnh', icon: '🪴' },
+  vehicle: { label: 'Xe cộ', icon: '🚗' },
+  other: { label: 'Đồ vật khác', icon: '📦' },
+};
+
+const NAV_TITLES = {
+  all: { title: 'Tin đăng mất đồ & nhặt được', sub: 'Toàn bộ tin đang hoạt động tại Hà Nội' },
+  lost: { title: 'Tin báo mất đồ', sub: 'Những tin nhắn tìm lại đồ đã mất' },
+  found: { title: 'Đồ nhặt được — chờ trả lại chủ', sub: 'Giúp chủ nhân sớm tìm lại đồ của mình' },
+  pet: { title: 'Thú cưng thất lạc', sub: 'Chó, mèo... đi lạc đang cần tìm về nhà' },
+  vehicle: { title: 'Xe cộ thất lạc', sub: 'Xe máy, xe đạp... bị mất hoặc nhặt được' },
+  person: { title: 'Tìm người thân thất lạc', sub: 'Thông tin hỗ trợ tìm người thân đi lạc' },
+};
+
+// State (trang danh sách)
+let posts = [];
+let activeType = 'all';
 let currentPage = 1;
 let totalPages = 1;
-let revealedPhones = new Set();
-let matchedPosts = new Set();
-let flaggedPosts = new Set();
 let imgDataUrl = null;
-let imgFile = null;
 
-/* ── Xây query string từ các bộ lọc trên UI ── */
+// State (trang chi tiết)
+let currentPost = null;
+
+/* ── Local state (đã đăng nhập hay chưa cũng dùng chung, lưu theo trình duyệt) ── */
+function readIdSet(key) {
+  try {
+    return new Set(JSON.parse(localStorage.getItem(key) || '[]'));
+  } catch (e) {
+    return new Set();
+  }
+}
+function writeIdSet(key, set) {
+  try {
+    localStorage.setItem(key, JSON.stringify(Array.from(set)));
+  } catch (e) {}
+}
+function isInSet(key, id) {
+  return readIdSet(key).has(id);
+}
+function toggleInSet(key, id) {
+  const set = readIdSet(key);
+  const has = set.has(id);
+  if (has) set.delete(id);
+  else set.add(id);
+  writeIdSet(key, set);
+  return !has;
+}
+
+/* ── Đọc danh mục đang được tick trong sidebar ── */
+function getSelectedCategories() {
+  return Array.from(document.querySelectorAll('.category-checkbox:checked')).map((el) => el.value);
+}
+
+/* ── Xây query string từ các bộ lọc trên sidebar ── */
 function buildQueryParams(page) {
   const params = new URLSearchParams();
-  if (activeTab !== 'all') params.set('type', activeTab);
+  if (activeType !== 'all') params.set('type', activeType);
 
-  const district = document.getElementById('district-filter').value;
+  const cats = getSelectedCategories();
+  if (cats.length) params.set('category', cats.join(','));
+
+  const district = (document.getElementById('district-filter') || {}).value;
   if (district) params.set('district', district);
 
-  const sort = document.getElementById('sort-select').value;
+  const sort = (document.getElementById('sort-select') || {}).value;
   if (sort) params.set('sort', sort);
 
   const status = (document.getElementById('fp-status') || {}).value;
@@ -47,7 +97,7 @@ function buildQueryParams(page) {
   const dateTo = (document.getElementById('fp-date-to') || {}).value;
   if (dateTo) params.set('dateTo', dateTo);
 
-  const q = document.getElementById('search-input').value.trim();
+  const q = (document.getElementById('search-input') || {}).value.trim();
   if (q) params.set('q', q);
 
   params.set('page', page);
@@ -55,44 +105,64 @@ function buildQueryParams(page) {
   return params.toString();
 }
 
-/* ── Tải danh sách tin từ server ── */
-async function fetchPosts(reset) {
-  if (reset) currentPage = 1;
-
+/* ── Tải danh sách tin từ server (luôn thay thế, không cộng dồn — dùng phân trang số) ── */
+async function fetchPosts(page) {
+  currentPage = page || 1;
   try {
     const data = await api.get('/posts?' + buildQueryParams(currentPage));
-    posts = reset ? data.posts : posts.concat(data.posts);
+    posts = data.posts;
     totalPages = data.pages;
-    renderFeed();
+    renderFeed(data.total);
   } catch (err) {
     showToast('❌ ' + err.message);
   }
 }
 
-function loadMore() {
-  if (currentPage >= totalPages) return;
-  currentPage++;
-  fetchPosts(false);
+function goToPage(n) {
+  if (n < 1 || n > totalPages || n === currentPage) return;
+  fetchPosts(n);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 /* ── Tải số liệu thống kê cho thanh stats ── */
 async function fetchStats() {
   try {
     const s = await api.get('/posts/stats');
-    document.getElementById('total-count').textContent = s.total;
-    document.getElementById('lost-count').textContent = s.lost;
-    document.getElementById('found-count').textContent = s.found;
-    document.getElementById('closed-count').textContent = s.closed;
-    document.getElementById('urgent-count').textContent = s.urgent;
+    const map = { 'total-count': s.total, 'lost-count': s.lost, 'found-count': s.found, 'closed-count': s.closed, 'urgent-count': s.urgent };
+    Object.entries(map).forEach(([id, val]) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = val;
+    });
   } catch (err) {
     console.error('Lỗi tải thống kê:', err.message);
   }
 }
 
+/* ── Trang chi tiết: tải 1 tin + các tin liên quan ── */
+async function fetchPostDetail(id) {
+  try {
+    const { post } = await api.get(`/posts/${id}`);
+    currentPost = post;
+    renderPostDetail();
+    fetchRelatedPosts(id);
+  } catch (err) {
+    renderPostDetailError(err.message);
+  }
+}
+
+async function fetchRelatedPosts(id) {
+  try {
+    const { posts: related } = await api.get(`/posts/${id}/related`);
+    renderRelatedPosts(related);
+  } catch (err) {
+    /* không chặn UX nếu lỗi */
+  }
+}
+
 /* ── Bấm xem số điện thoại (không cần đăng nhập) ── */
 async function revealPhone(id) {
-  revealedPhones.add(id);
-  renderFeed();
+  toggleInSet('dtl_revealed', id); // đánh dấu đã xem (không toggle lại được, chỉ add)
+  if (typeof renderPostDetail === 'function' && currentPost && currentPost._id === id) renderPostDetail();
   try {
     await api.post(`/posts/${id}/reveal`, {});
   } catch (err) {
@@ -103,46 +173,39 @@ async function revealPhone(id) {
 /* ── Bấm "Quan tâm" (cần đăng nhập để tránh spam ẩn danh) ── */
 async function toggleMatch(id) {
   if (!currentUser) {
-    openAuth('login');
-    showToast('🔒 Vui lòng đăng nhập để thực hiện thao tác này.');
+    requireAuth(null, 'Vui lòng đăng nhập để thực hiện thao tác này.');
     return;
   }
-  const isMatched = matchedPosts.has(id);
+  const wasMatched = isInSet('dtl_matched', id);
   try {
-    await api.patch(`/posts/${id}/match`, { action: isMatched ? 'remove' : 'add' });
-    if (isMatched) {
-      matchedPosts.delete(id);
-      showToast('↩️ Đã bỏ ghi nhận');
-    } else {
-      matchedPosts.add(id);
-      showToast('👍 Đã ghi nhận! Hãy liên hệ người đăng tin.');
+    await api.patch(`/posts/${id}/match`, { action: wasMatched ? 'remove' : 'add' });
+    toggleInSet('dtl_matched', id);
+    showToast(wasMatched ? '↩️ Đã bỏ ghi nhận' : '👍 Đã ghi nhận! Hãy liên hệ người đăng tin.');
+    if (currentPost && currentPost._id === id) {
+      currentPost.matches += wasMatched ? -1 : 1;
+      renderPostDetail();
     }
-    const p = posts.find((x) => x._id === id);
-    if (p) p.matches += isMatched ? -1 : 1;
-    renderFeed();
   } catch (err) {
     showToast('❌ ' + err.message);
   }
 }
 
 function toggleFlag(id) {
-  if (flaggedPosts.has(id)) {
-    flaggedPosts.delete(id);
-    showToast('Đã bỏ báo cáo');
-  } else {
-    flaggedPosts.add(id);
-    showToast('⚠️ Đã báo cáo tin nghi ngờ lừa đảo. Cảm ơn bạn!');
-  }
-  renderFeed();
+  const nowFlagged = toggleInSet('dtl_flagged', id);
+  showToast(nowFlagged ? '⚠️ Đã báo cáo tin nghi ngờ lừa đảo. Cảm ơn bạn!' : 'Đã bỏ báo cáo');
+  if (currentPost && currentPost._id === id) renderPostDetail();
 }
 
 /* ── Đánh dấu "Đã tìm thấy" / mở lại tin (chỉ chủ tin) ── */
 async function resolvePost(id) {
   try {
     const { post } = await api.patch(`/posts/${id}/status`, {});
+    if (currentPost && currentPost._id === id) {
+      currentPost = post;
+      renderPostDetail();
+    }
     const idx = posts.findIndex((x) => x._id === id);
     if (idx !== -1) posts[idx] = post;
-    renderFeed();
     fetchStats();
     showToast(post.status === 'closed' ? '✅ Đã đánh dấu "Đã tìm thấy" — Chúc mừng!' : '↩️ Đã mở lại tin đăng');
   } catch (err) {
@@ -150,8 +213,7 @@ async function resolvePost(id) {
   }
 }
 
-function sharePost(id) {
-  const p = posts.find((x) => x._id === id);
+function sharePost(p) {
   if (!p) return;
   const tc = TYPE_CFG[p.type];
   const text = `[${tc.label}] ${p.name} – ${p.district}, Hà Nội\n${p.desc}`;
@@ -163,79 +225,6 @@ function sharePost(id) {
       .then(() => showToast('📋 Đã sao chép thông tin tin đăng!'))
       .catch(() => showToast('Không thể sao chép — vui lòng thử lại'));
   }
-}
-
-/* ── Nén ảnh phía client trước khi gửi lên server (giữ nguyên logic gốc) ── */
-function loadImageFromFile(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = () => reject(new Error('Không đọc được file ảnh.'));
-    reader.onload = (e) => {
-      const img = new Image();
-      img.onerror = () => reject(new Error('File này không phải ảnh hợp lệ.'));
-      img.onload = () => resolve(img);
-      img.src = e.target.result;
-    };
-    reader.readAsDataURL(file);
-  });
-}
-
-function drawToDataUrl(img, maxDim, quality) {
-  let { width, height } = img;
-  if (width > maxDim || height > maxDim) {
-    if (width >= height) {
-      height = Math.round((height * maxDim) / width);
-      width = maxDim;
-    } else {
-      width = Math.round((width * maxDim) / height);
-      height = maxDim;
-    }
-  }
-  const canvas = document.createElement('canvas');
-  canvas.width = width;
-  canvas.height = height;
-  canvas.getContext('2d').drawImage(img, 0, 0, width, height);
-  return canvas.toDataURL('image/jpeg', quality);
-}
-
-// Nén ảnh để gửi lên server dạng base64 (backend giới hạn body 5MB, ảnh nén <900KB)
-async function compressImageToBase64(file) {
-  const img = await loadImageFromFile(file);
-  let maxDim = 1000;
-  let quality = 0.75;
-  let dataUrl = drawToDataUrl(img, maxDim, quality);
-  let tries = 0;
-  while (dataUrl.length > 700000 && tries < 5) {
-    maxDim = Math.round(maxDim * 0.75);
-    quality = Math.max(0.35, quality - 0.15);
-    dataUrl = drawToDataUrl(img, maxDim, quality);
-    tries++;
-  }
-  if (dataUrl.length > 900000) throw new Error('Ảnh vẫn quá lớn sau khi nén.');
-  return dataUrl;
-}
-
-function previewImg(e) {
-  const file = e.target.files[0];
-  if (!file) return;
-  imgFile = file;
-  document.getElementById('upload-text').textContent = '⏳ Đang nén ảnh...';
-  compressImageToBase64(file)
-    .then((dataUrl) => {
-      imgDataUrl = dataUrl;
-      const el = document.getElementById('img-preview');
-      el.src = imgDataUrl;
-      el.style.display = 'block';
-      document.getElementById('upload-text').textContent =
-        '✅ ' + file.name + ' (~' + Math.round(dataUrl.length / 1024) + 'KB sau khi nén)';
-    })
-    .catch((err) => {
-      console.error(err);
-      imgFile = null;
-      imgDataUrl = null;
-      document.getElementById('upload-text').textContent = 'Bấm để chọn ảnh (JPG, PNG...)';
-      showToast('❌ Ảnh quá nặng hoặc bị lỗi, vui lòng chọn ảnh khác.');
-    });
 }
 
 /* ── Đăng tin mới ── */
@@ -263,6 +252,7 @@ async function submitPost() {
   try {
     await api.post('/posts', {
       type: document.getElementById('f-type').value,
+      category: document.getElementById('f-category').value,
       name,
       district: document.getElementById('f-district').value,
       location,
@@ -277,7 +267,7 @@ async function submitPost() {
     closeModal();
     showToast('✅ Đã đăng tin thành công!');
     fetchStats();
-    fetchPosts(true);
+    fetchPosts(1);
   } catch (err) {
     console.error(err);
     showToast('❌ ' + (err.message || 'Đăng tin lỗi, vui lòng thử lại.'));

@@ -5,6 +5,7 @@ const {
   getPosts,
   getStats,
   getPost,
+  getRelatedPosts,
   createPost,
   toggleStatus,
   toggleMatch,
@@ -13,10 +14,11 @@ const {
 } = require('../controllers/postController');
 const { protect } = require('../middleware/auth');
 
-// Lưu ý thứ tự: '/stats' phải khai báo TRƯỚC '/:id',
-// nếu không Express sẽ hiểu nhầm "stats" là 1 giá trị :id
+// Lưu ý thứ tự: '/stats' và các route tĩnh khác phải khai báo TRƯỚC '/:id',
+// nếu không Express sẽ hiểu nhầm chúng là 1 giá trị :id
 router.get('/', getPosts);
 router.get('/stats', getStats);
+router.get('/:id/related', getRelatedPosts);
 router.get('/:id', getPost);
 
 router.post('/', protect, createPost);

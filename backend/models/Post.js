@@ -2,6 +2,9 @@ const mongoose = require('mongoose');
 
 const TYPES = ['lost', 'found', 'pet', 'vehicle', 'person'];
 
+// Danh mục đồ vật — dùng cho bộ lọc "Danh mục" ở sidebar (theo mẫu timdothatlac.vn)
+const CATEGORIES = ['wallet', 'pet', 'electronics', 'household', 'vehicle', 'other'];
+
 const postSchema = new mongoose.Schema(
   {
     type: {
@@ -9,6 +12,15 @@ const postSchema = new mongoose.Schema(
       enum: TYPES,
       required: true,
       default: 'lost',
+    },
+    // Danh mục đồ vật cụ thể — độc lập với "type" (mất/nhặt được/thú cưng...),
+    // dùng để lọc theo sidebar kiểu "Ví/Giấy tờ, Điện thoại/Tablet/Laptop..."
+    // Field này KHÔNG bắt buộc để không phá dữ liệu cũ; nếu bỏ trống sẽ tự suy ra
+    // từ "type" khi hiển thị (xem hàm inferCategory ở postController).
+    category: {
+      type: String,
+      enum: CATEGORIES,
+      default: 'other',
     },
     name: {
       type: String,
@@ -34,11 +46,11 @@ const postSchema = new mongoose.Schema(
       default: 'Không có mô tả thêm.',
     },
     img: {
-      type: String, // ảnh đã nén dạng base64 (client tự nén, giới hạn ~900KB)
+      type: String,
       default: null,
     },
     date: {
-      type: String, // dạng yyyy-mm-dd, giữ String cho đơn giản khi so sánh/lọc
+      type: String,
       default: '',
     },
     isUrgent: {
@@ -72,11 +84,13 @@ const postSchema = new mongoose.Schema(
       default: '',
     },
   },
-  { timestamps: true } // tự thêm createdAt / updatedAt
+  { timestamps: true }
 );
 
-// Index giúp truy vấn lọc & sắp xếp nhanh hơn khi dữ liệu lớn dần
 postSchema.index({ createdAt: -1 });
 postSchema.index({ type: 1, district: 1, status: 1 });
+postSchema.index({ category: 1 });
 
 module.exports = mongoose.model('Post', postSchema);
+module.exports.TYPES = TYPES;
+module.exports.CATEGORIES = CATEGORIES;

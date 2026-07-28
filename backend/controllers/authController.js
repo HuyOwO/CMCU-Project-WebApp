@@ -3,7 +3,6 @@ const User = require('../models/User');
 const generateToken = require('../utils/generateToken');
 const sendEmail = require('../utils/sendEmail');
 
-// Gửi về token + thông tin user gọn gàng (dùng chung cho register/login/reset)
 function sendAuthResponse(user, statusCode, res) {
   const token = generateToken(user._id);
   res.status(statusCode).json({
@@ -13,11 +12,11 @@ function sendAuthResponse(user, statusCode, res) {
       name: user.name,
       email: user.email,
       phone: user.phone,
+      role: user.role,
     },
   });
 }
 
-// @route  POST /api/auth/register
 async function register(req, res, next) {
   try {
     const { name, email, phone, password } = req.body;
@@ -46,14 +45,12 @@ async function register(req, res, next) {
   }
 }
 
-// @route  POST /api/auth/login
 async function login(req, res, next) {
   try {
     const { email, password } = req.body;
     if (!email) return res.status(400).json({ message: 'Vui lòng nhập email.' });
     if (!password) return res.status(400).json({ message: 'Vui lòng nhập mật khẩu.' });
 
-    // .select('+password') vì trong model đã đặt select:false cho field password
     const user = await User.findOne({ email: email.toLowerCase() }).select('+password');
     if (!user || !(await user.matchPassword(password))) {
       return res.status(401).json({ message: 'Email hoặc mật khẩu không đúng.' });
@@ -65,7 +62,6 @@ async function login(req, res, next) {
   }
 }
 
-// @route  GET /api/auth/me   (cần đăng nhập)
 async function getMe(req, res) {
   res.json({
     user: {
@@ -73,11 +69,11 @@ async function getMe(req, res) {
       name: req.user.name,
       email: req.user.email,
       phone: req.user.phone,
+      role: req.user.role,
     },
   });
 }
 
-// @route  POST /api/auth/forgot-password
 async function forgotPassword(req, res, next) {
   try {
     const { email } = req.body;
@@ -85,8 +81,6 @@ async function forgotPassword(req, res, next) {
       return res.status(400).json({ message: 'Vui lòng nhập email hợp lệ.' });
     }
 
-    // Thông báo chung chung dù email có tồn tại hay không, tránh lộ thông tin
-    // ai đã đăng ký tài khoản (user enumeration) — đây là thực hành bảo mật tốt.
     const genericMsg =
       'Nếu email tồn tại trong hệ thống, hướng dẫn đặt lại mật khẩu đã được gửi tới hộp thư của bạn.';
 
@@ -95,7 +89,7 @@ async function forgotPassword(req, res, next) {
 
     const resetToken = crypto.randomBytes(32).toString('hex');
     user.resetPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex');
-    user.resetPasswordExpire = Date.now() + 15 * 60 * 1000; // hết hạn sau 15 phút
+    user.resetPasswordExpire = Date.now() + 15 * 60 * 1000;
     await user.save({ validateBeforeSave: false });
 
     const resetUrl = `${process.env.CLIENT_RESET_URL || 'http://localhost:5500/reset-password.html'}?token=${resetToken}`;
@@ -111,7 +105,6 @@ async function forgotPassword(req, res, next) {
       });
       res.json({ message: genericMsg });
     } catch (emailErr) {
-      // Chưa cấu hình SMTP trong .env -> trả thẳng link ra để tiện demo/chấm bài
       console.warn('⚠️  Chưa cấu hình email thật, trả devResetUrl để demo:', emailErr.message);
       res.json({ message: genericMsg, devResetUrl: resetUrl });
     }
@@ -120,7 +113,6 @@ async function forgotPassword(req, res, next) {
   }
 }
 
-// @route  PUT /api/auth/reset-password/:token
 async function resetPassword(req, res, next) {
   try {
     const { password } = req.body;
@@ -138,7 +130,7 @@ async function resetPassword(req, res, next) {
       return res.status(400).json({ message: 'Link đặt lại mật khẩu không hợp lệ hoặc đã hết hạn.' });
     }
 
-    user.password = password; // pre('save') hook sẽ tự mã hoá lại
+    user.password = password;
     user.resetPasswordToken = undefined;
     user.resetPasswordExpire = undefined;
     await user.save();

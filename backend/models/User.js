@@ -25,7 +25,15 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: [true, 'Vui lòng nhập mật khẩu'],
       minlength: 6,
-      select: false, // mặc định không trả password khi query
+      select: false,
+    },
+    // Vai trò tài khoản — dùng để phân quyền quản trị viên (VD: đăng bài
+    // "Mẹo tìm đồ" / "Cảnh báo lừa đảo"). Mặc định mọi người đăng ký đều là 'user'.
+    // Muốn nâng 1 tài khoản lên admin: vào MongoDB Atlas > collection users > sửa field role = 'admin'.
+    role: {
+      type: String,
+      enum: ['user', 'admin'],
+      default: 'user',
     },
     resetPasswordToken: String,
     resetPasswordExpire: Date,
@@ -33,7 +41,6 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Mã hoá mật khẩu trước khi lưu vào DB (chỉ chạy khi password thay đổi)
 userSchema.pre('save', async function hashPassword(next) {
   if (!this.isModified('password')) return next();
   const salt = await bcrypt.genSalt(10);
@@ -41,7 +48,6 @@ userSchema.pre('save', async function hashPassword(next) {
   next();
 });
 
-// So sánh mật khẩu người dùng nhập với mật khẩu đã mã hoá trong DB
 userSchema.methods.matchPassword = async function matchPassword(enteredPassword) {
   return bcrypt.compare(enteredPassword, this.password);
 };

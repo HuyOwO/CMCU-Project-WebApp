@@ -1,6 +1,5 @@
 /* ============================================================
    API.JS — hàm dùng chung để gọi tới backend Express
-   Thay thế toàn bộ các lệnh gọi Firebase SDK trong bản gốc
    ============================================================ */
 
 const TOKEN_KEY = 'dtl_token';
@@ -20,11 +19,6 @@ function setToken(token) {
   } catch (e) {}
 }
 
-/**
- * Gọi API chung, tự đính kèm JWT (nếu có) và tự parse JSON.
- * @param {string} path   VD: '/posts', '/auth/login'
- * @param {object} options { method, body }
- */
 async function apiFetch(path, { method = 'GET', body } = {}) {
   const headers = { 'Content-Type': 'application/json' };
   const token = getToken();
@@ -38,7 +32,6 @@ async function apiFetch(path, { method = 'GET', body } = {}) {
       body: body ? JSON.stringify(body) : undefined,
     });
   } catch (networkErr) {
-    // Thường gặp khi backend Render đang "ngủ" (cold start) hoặc mất mạng
     throw new Error('Không kết nối được máy chủ. Vui lòng thử lại sau vài giây (server có thể đang khởi động).');
   }
 

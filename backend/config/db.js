@@ -6,7 +6,7 @@ async function connectDB() {
     console.log(`✅ MongoDB đã kết nối: ${conn.connection.host}`);
   } catch (err) {
     console.error(`❌ Lỗi kết nối MongoDB: ${err.message}`);
-    process.exit(1); // dừng server nếu không kết nối được DB
+    process.exit(1);
   }
 }
 

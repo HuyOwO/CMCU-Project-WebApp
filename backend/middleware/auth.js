@@ -1,7 +1,6 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
-// Middleware kiểm tra người dùng đã đăng nhập (có JWT hợp lệ) chưa
 async function protect(req, res, next) {
   const authHeader = req.headers.authorization;
 
@@ -26,4 +25,18 @@ async function protect(req, res, next) {
   }
 }
 
-module.exports = { protect };
+// Middleware optional: nếu có token hợp lệ thì gắn req.user, không có/lỗi thì vẫn cho qua
+async function optionalAuth(req, res, next) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) return next();
+  try {
+    const token = authHeader.split(' ')[1];
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = await User.findById(decoded.id);
+  } catch (err) {
+    /* bỏ qua, coi như khách */
+  }
+  next();
+}
+
+module.exports = { protect, optionalAuth };

@@ -3,59 +3,39 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Đồ Thất Lạc Hà Nội</title>
+  <title>Đồ Thất Lạc Hà Nội — Đăng tin tìm & trả lại đồ thất lạc</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
 <!-- ── Header ── -->
 <div class="header">
-  <div class="logo">
+  <a class="logo" href="index.html">
     🔍 <span>Đồ Thất Lạc HN</span>
     <div class="live-dot" title="Cập nhật realtime"></div>
-  </div>
-
-  <!-- Search bar in header -->
-  <div class="header-search">
-    <input type="text" id="search-input" placeholder="Tìm theo tên đồ, địa điểm, mô tả..." oninput="onFilter()">
-    <button class="header-search-btn" onclick="onFilter()">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round">
-        <circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-      </svg>
-    </button>
-  </div>
+  </a>
 
   <div class="header-actions">
-    <!-- Theme toggle button -->
     <button class="theme-toggle-btn" id="theme-toggle-btn" onclick="toggleTheme()" title="Chuyển dark/light mode">🌙</button>
 
-    <!-- Icon button (chưa/đã đăng nhập đều dùng chung) -->
     <div class="acct-btn" id="acct-btn" onclick="toggleAcctDropdown()">
-      <!-- Icon người dùng (khi chưa đăng nhập) -->
       <svg class="acct-icon-svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#374151" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
       </svg>
-      <!-- Avatar chữ cái (khi đã đăng nhập) -->
       <div class="acct-avatar" id="acct-avatar">U</div>
       <span class="acct-name" id="acct-name"></span>
       <span class="acct-chevron">▾</span>
     </div>
 
-    <!-- Dropdown menu -->
     <div class="acct-dropdown" id="acct-dropdown">
-      <!-- Phần info (chỉ hiện khi đã đăng nhập) -->
       <div class="acct-dd-header" id="acct-dd-header">
         <div class="acct-dd-username" id="acct-dd-username"></div>
         <div class="acct-dd-email" id="acct-dd-email"></div>
       </div>
-
-      <!-- Khi chưa đăng nhập -->
       <div class="acct-dd-section" id="dd-guest-section">
         <div class="acct-dd-item" onclick="openAuth('login')">Đăng nhập</div>
         <div class="acct-dd-item" onclick="openAuth('register')"> Đăng ký</div>
       </div>
-
-      <!-- Khi đã đăng nhập -->
       <div class="acct-dd-section" id="dd-user-section" style="display:none">
         <div class="acct-dd-item">      <span class="dd-icon">📋</span> Tin của tôi</div>
         <div class="acct-dd-item">      <span class="dd-icon">⚙️</span> Cài đặt</div>
@@ -69,104 +49,175 @@
   </div>
 </div>
 
-<div class="container">
+<!-- ── Nav bar (loại tin + liên kết Mẹo tìm đồ / Danh sách lừa đảo) ── -->
+<div class="nav-bar">
+  <div class="nav-bar-inner">
+    <a class="nav-link" data-type="all" href="index.html">Tất cả</a>
+    <a class="nav-link" data-type="found" href="index.html?type=found">Nhặt được</a>
+    <a class="nav-link" data-type="lost" href="index.html?type=lost">Mất đồ</a>
+    <a class="nav-link" data-type="pet" href="index.html?type=pet">Thú cưng</a>
+    <a class="nav-link" data-type="vehicle" href="index.html?type=vehicle">Xe cộ</a>
+    <a class="nav-link" data-type="person" href="index.html?type=person">Tìm người thân</a>
+    <span class="nav-sep"></span>
+    <a class="nav-link" href="tips.html">💡 Mẹo tìm đồ</a>
+    <a class="nav-link warn" href="scam-warnings.html">🚫 Danh sách lừa đảo</a>
+  </div>
+</div>
+
+<div class="page-wrap">
 
   <!-- ── Stats ── -->
   <div class="stats">
-    <div class="stat">
-      <div class="stat-num" id="total-count">0</div>
-      <div class="stat-label">Tổng tin</div>
-    </div>
-    <div class="stat">
-      <div class="stat-num" style="color:#991b1b" id="lost-count">0</div>
-      <div class="stat-label">Đang tìm</div>
-    </div>
-    <div class="stat">
-      <div class="stat-num" style="color:#166534" id="found-count">0</div>
-      <div class="stat-label">Nhặt được</div>
-    </div>
-    <div class="stat">
-      <div class="stat-num" style="color:#1d4ed8" id="closed-count">0</div>
-      <div class="stat-label">Đã tìm thấy</div>
-    </div>
-    <div class="stat">
-      <div class="stat-num" style="color:#ef4444" id="urgent-count">0</div>
-      <div class="stat-label">Khẩn cấp</div>
-    </div>
+    <div class="stat"><div class="stat-num" id="total-count">0</div><div class="stat-label">Tổng tin</div></div>
+    <div class="stat"><div class="stat-num" style="color:#991b1b" id="lost-count">0</div><div class="stat-label">Đang tìm</div></div>
+    <div class="stat"><div class="stat-num" style="color:#166534" id="found-count">0</div><div class="stat-label">Nhặt được</div></div>
+    <div class="stat"><div class="stat-num" style="color:#1d4ed8" id="closed-count">0</div><div class="stat-label">Đã tìm thấy</div></div>
+    <div class="stat"><div class="stat-num" style="color:#ef4444" id="urgent-count">0</div><div class="stat-label">Khẩn cấp</div></div>
   </div>
 
-  <!-- ── Filter bar ── -->
-  <div class="filter-bar">
-    <!-- Category tabs -->
-    <div class="filter-tabs">
-      <button class="tab active" onclick="setTab('all',this)">Tất cả</button>
-      <button class="tab" onclick="setTab('lost',this)">🚨 Mất đồ</button>
-      <button class="tab" onclick="setTab('found',this)">Nhặt được</button>
-      <button class="tab" onclick="setTab('pet',this)">🐾 Thú cưng</button>
-      <button class="tab" onclick="setTab('vehicle',this)">🚗 Xe cộ</button>
-      <button class="tab" onclick="setTab('person',this)">👤 Tìm người</button>
-    </div>
+  <div class="page-layout">
+    <!-- ── Sidebar bộ lọc ── -->
+    <aside class="sidebar">
+      <div class="sidebar-head">
+        <h3>⚙️ Bộ lọc</h3>
+        <button class="sidebar-reset" onclick="resetFilters()">Đặt lại</button>
+      </div>
 
-    <!-- District select inline -->
-    <select class="filter-select" id="district-filter" onchange="onFilter()">
-      <option value="">Tất cả quận</option>
-      <option>Hoàn Kiếm</option><option>Đống Đa</option><option>Hai Bà Trưng</option>
-      <option>Ba Đình</option><option>Cầu Giấy</option><option>Thanh Xuân</option>
-      <option>Long Biên</option><option>Hoàng Mai</option><option>Tây Hồ</option>
-      <option>Nam Từ Liêm</option><option>Bắc Từ Liêm</option><option>Hà Đông</option>
-    </select>
+      <div class="sidebar-group">
+        <label class="group-label">Từ khóa</label>
+        <div class="sidebar-search">
+          <input type="text" id="search-input" placeholder="Tên đồ, địa điểm..." onkeydown="onSearchKeydown(event)">
+          <button onclick="onFilter()" aria-label="Tìm kiếm" type="button">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </button>
+        </div>
+      </div>
 
-    <!-- Sort select inline -->
-    <select class="filter-select" id="sort-select" onchange="onFilter()">
-      <option value="newest">⏱ Mới nhất</option>
-      <option value="urgent">⚡ Khẩn cấp</option>
-      <option value="views">👁 Lượt xem</option>
-    </select>
+      <div class="sidebar-group">
+        <label class="group-label">Danh mục</label>
+        <div class="checkbox-list">
+          <label class="checkbox-row"><input type="checkbox" class="category-checkbox" value="wallet" onchange="onFilter()"> 👛 Ví / Giấy tờ</label>
+          <label class="checkbox-row"><input type="checkbox" class="category-checkbox" value="pet" onchange="onFilter()"> 🐾 Thú cưng (Chó/Mèo)</label>
+          <label class="checkbox-row"><input type="checkbox" class="category-checkbox" value="electronics" onchange="onFilter()"> 📱 Điện thoại / Tablet / Laptop</label>
+          <label class="checkbox-row"><input type="checkbox" class="category-checkbox" value="household" onchange="onFilter()"> 🪴 Đồ gia dụng, nội thất, cây cảnh</label>
+          <label class="checkbox-row"><input type="checkbox" class="category-checkbox" value="vehicle" onchange="onFilter()"> 🚗 Xe cộ</label>
+          <label class="checkbox-row"><input type="checkbox" class="category-checkbox" value="other" onchange="onFilter()"> 📦 Đồ vật khác</label>
+        </div>
+      </div>
 
-    <!-- Bộ lọc nâng cao -->
-    <button class="filter-more-btn" id="filter-more-btn" onclick="toggleFilterPanel()">
-      ⚙️ Bộ lọc <span class="filter-more-chevron">▾</span>
-    </button>
-  </div>
+      <div class="sidebar-group">
+        <label class="group-label">Khu vực</label>
+        <select id="district-filter" onchange="onFilter()">
+          <option value="">Tất cả quận</option>
+          <option>Hoàn Kiếm</option><option>Đống Đa</option><option>Hai Bà Trưng</option>
+          <option>Ba Đình</option><option>Cầu Giấy</option><option>Thanh Xuân</option>
+          <option>Long Biên</option><option>Hoàng Mai</option><option>Tây Hồ</option>
+          <option>Nam Từ Liêm</option><option>Bắc Từ Liêm</option><option>Hà Đông</option>
+        </select>
+      </div>
 
-  <!-- ── Panel bộ lọc nâng cao ── -->
-  <div class="filter-panel" id="filter-panel">
-    <div class="filter-panel-grid">
-      <div>
-        <label>Trạng thái</label>
+      <div class="sidebar-group">
+        <label class="group-label">Trạng thái &amp; đặc điểm</label>
         <select id="fp-status" onchange="onFilter()">
-          <option value="">Tất cả</option>
+          <option value="">Tất cả trạng thái</option>
           <option value="open">Đang tìm</option>
           <option value="closed">Đã tìm thấy</option>
         </select>
-      </div>
-      <div>
-        <label>Đặc điểm</label>
         <select id="fp-urgent" onchange="onFilter()">
-          <option value="">Tất cả</option>
+          <option value="">Tất cả đặc điểm</option>
           <option value="urgent">⚡ Chỉ tin khẩn cấp</option>
           <option value="reward">🎁 Chỉ tin có thưởng</option>
         </select>
       </div>
-      <div>
-        <label>Từ ngày</label>
-        <input type="date" id="fp-date-from" onchange="onFilter()">
+
+      <div class="sidebar-group">
+        <label class="group-label">Khoảng thời gian</label>
+        <div class="sidebar-daterow">
+          <input type="date" id="fp-date-from" onchange="onFilter()">
+          <input type="date" id="fp-date-to" onchange="onFilter()">
+        </div>
       </div>
-      <div>
-        <label>Đến ngày</label>
-        <input type="date" id="fp-date-to" onchange="onFilter()">
+
+      <div class="sidebar-group">
+        <label class="group-label">Sắp xếp</label>
+        <select id="sort-select" onchange="onFilter()">
+          <option value="newest">⏱ Mới nhất</option>
+          <option value="urgent">⚡ Khẩn cấp trước</option>
+          <option value="views">👁 Lượt xem nhiều</option>
+        </select>
+      </div>
+
+      <button class="sidebar-apply" onclick="onFilter()">🔍 Áp dụng bộ lọc</button>
+    </aside>
+
+    <!-- ── Nội dung chính ── -->
+    <main>
+      <div class="content-head">
+        <div>
+          <h1 id="content-title">Tin đăng mất đồ &amp; nhặt được</h1>
+          <div class="content-sub" id="content-sub">Đang tải...</div>
+        </div>
+      </div>
+
+      <div class="post-grid" id="feed"></div>
+      <div class="pagination" id="pagination"></div>
+
+      <!-- ── Mẹo tìm đồ ── -->
+      <div class="article-widget">
+        <div class="article-widget-head">
+          <h2>💡 Mẹo tìm đồ</h2>
+          <a href="tips.html">Xem tất cả →</a>
+        </div>
+        <div class="article-mini-grid" id="home-tips-grid"></div>
+      </div>
+
+      <!-- ── Số điện thoại lừa đảo ── -->
+      <div class="article-widget">
+        <div class="article-widget-head">
+          <h2 class="warn">🚫 Số điện thoại lừa đảo</h2>
+          <a href="scam-warnings.html">Xem tất cả →</a>
+        </div>
+        <div class="article-mini-grid" id="home-scam-grid"></div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- ── Footer ── -->
+<footer class="site-footer">
+  <div class="footer-inner">
+    <div>
+      <div class="footer-brand">🔍 Đồ Thất Lạc HN</div>
+      <div class="footer-tagline">Kết nối người mất đồ và người nhặt được — miễn phí, nhanh chóng, vì cộng đồng Hà Nội.</div>
+      <div class="footer-social">
+        <a href="#" title="Facebook">📘</a>
+        <a href="#" title="Zalo">💬</a>
+        <a href="#" title="Email">✉️</a>
       </div>
     </div>
-    <div class="filter-panel-actions">
-      <button class="btn-filter-reset" onclick="resetFilters()">Đặt lại</button>
-      <button class="btn-filter-apply" onclick="toggleFilterPanel()">Áp dụng</button>
+    <div class="footer-col">
+      <h5>Chuyên mục</h5>
+      <a href="index.html">Trang chủ</a>
+      <a href="index.html?type=lost">Mất đồ</a>
+      <a href="index.html?type=found">Nhặt được</a>
+      <a href="tips.html">Mẹo tìm đồ</a>
+      <a href="scam-warnings.html">Cảnh báo lừa đảo</a>
+    </div>
+    <div class="footer-col">
+      <h5>Liên hệ</h5>
+      <div>📍 Hà Nội, Việt Nam</div>
+      <div>✉️ lienhe@dothatlachn.vn (demo)</div>
+      <div>Đồ án môn Phát triển Web</div>
     </div>
   </div>
+  <div class="footer-bottom">
+    <span>© <span id="footer-year"></span> Đồ Thất Lạc HN. Đồ án học tập, phi lợi nhuận.</span>
+  </div>
+</footer>
 
-  <!-- ── Feed & Load more ── -->
-  <div id="feed"></div>
-  <div id="load-more-wrap"></div>
-
+<div class="fab-stack">
+  <a class="fab-btn messenger" href="#" title="Nhắn tin Messenger (demo)">💬</a>
+  <a class="fab-btn zalo" href="#" title="Liên hệ Zalo (demo)">Z</a>
 </div>
 
 <!-- ── Modal đăng tin ── -->
@@ -174,15 +225,28 @@
   <div class="modal">
     <h3>📝 Đăng tin mới</h3>
 
-    <div class="form-row">
-      <label>Loại tin</label>
-      <select id="f-type">
-        <option value="lost">🚨 Tôi bị mất đồ</option>
-        <option value="found">✅ Tôi nhặt được đồ</option>
-        <option value="pet">🐾 Thú cưng thất lạc</option>
-        <option value="vehicle">🚗 Xe cộ thất lạc</option>
-        <option value="person">👤 Tìm người thân</option>
-      </select>
+    <div class="form-row-2">
+      <div class="form-row">
+        <label>Loại tin</label>
+        <select id="f-type">
+          <option value="lost">🚨 Tôi bị mất đồ</option>
+          <option value="found">✅ Tôi nhặt được đồ</option>
+          <option value="pet">🐾 Thú cưng thất lạc</option>
+          <option value="vehicle">🚗 Xe cộ thất lạc</option>
+          <option value="person">👤 Tìm người thân</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label>Danh mục đồ vật</label>
+        <select id="f-category">
+          <option value="wallet">👛 Ví / Giấy tờ</option>
+          <option value="pet">🐾 Thú cưng</option>
+          <option value="electronics">📱 Điện thoại/Tablet/Laptop</option>
+          <option value="household">🪴 Đồ gia dụng, nội thất</option>
+          <option value="vehicle">🚗 Xe cộ</option>
+          <option value="other" selected>📦 Đồ vật khác</option>
+        </select>
+      </div>
     </div>
 
     <label class="urgent-label" for="f-urgent">
@@ -238,7 +302,7 @@
     <div class="form-row">
       <label>Ảnh đồ vật</label>
       <div class="img-upload-box" onclick="document.getElementById('f-img').click()">
-        <input type="file" id="f-img" accept="image/*" onchange="previewImg(event)" style="display:none">
+        <input type="file" id="f-img" accept="image/*" style="display:none">
         <div class="upload-icon">📷</div>
         <p id="upload-text">Bấm để chọn ảnh (JPG, PNG...)</p>
         <img id="img-preview" class="img-preview" alt="preview">
@@ -262,17 +326,14 @@
     <div class="auth-title">Đồ Thất Lạc HN</div>
     <div class="auth-subtitle" id="auth-subtitle">Đăng nhập để đăng tin và theo dõi</div>
 
-    <!-- Tabs -->
     <div class="auth-tabs">
       <button class="auth-tab active" id="tab-login" onclick="switchAuthTab('login')">Đăng nhập</button>
       <button class="auth-tab" id="tab-register" onclick="switchAuthTab('register')">Đăng ký</button>
     </div>
 
-    <!-- Error / Success alerts -->
     <div class="auth-error" id="auth-error"></div>
     <div class="auth-success" id="auth-success"></div>
 
-    <!-- ── Login form ── -->
     <div class="auth-form active" id="form-login">
       <div class="auth-field">
         <label>Email</label>
@@ -289,7 +350,6 @@
       <div class="auth-footer-text">Chưa có tài khoản? <a onclick="switchAuthTab('register')">Đăng ký ngay</a></div>
     </div>
 
-    <!-- ── Register form ── -->
     <div class="auth-form" id="form-register">
       <div class="auth-field">
         <label>Họ và tên</label>
@@ -315,7 +375,6 @@
       <div class="auth-footer-text" style="margin-top:.5rem">Đã có tài khoản? <a onclick="switchAuthTab('login')">Đăng nhập</a></div>
     </div>
 
-    <!-- ── Forgot password form ── -->
     <div class="auth-form" id="form-forgot">
       <div style="font-size:13px;color:#666;margin-bottom:1rem;line-height:1.6">Nhập email của bạn, chúng tôi sẽ gửi link đặt lại mật khẩu.</div>
       <div class="auth-field">
@@ -328,14 +387,12 @@
   </div>
 </div>
 
-
-<!-- ══════════════════════════════════════
-     Các file JS được tách module, load theo thứ tự phụ thuộc
-     ══════════════════════════════════════ -->
 <script src="js/config.js"></script>
 <script src="js/api.js"></script>
+<script src="js/img-utils.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/posts.js"></script>
+<script src="js/articles.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/main.js"></script>
 </body>

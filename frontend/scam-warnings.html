@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Danh sách số điện thoại lừa đảo — Đồ Thất Lạc HN</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- ── Header ── -->
+<div class="header">
+  <a class="logo" href="index.html">
+    🔍 <span>Đồ Thất Lạc HN</span>
+    <div class="live-dot" title="Cập nhật realtime"></div>
+  </a>
+
+  <div class="header-actions">
+    <button class="theme-toggle-btn" id="theme-toggle-btn" onclick="toggleTheme()" title="Chuyển dark/light mode">🌙</button>
+
+    <div class="acct-btn" id="acct-btn" onclick="toggleAcctDropdown()">
+      <svg class="acct-icon-svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#374151" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+      </svg>
+      <div class="acct-avatar" id="acct-avatar">U</div>
+      <span class="acct-name" id="acct-name"></span>
+      <span class="acct-chevron">▾</span>
+    </div>
+
+    <div class="acct-dropdown" id="acct-dropdown">
+      <div class="acct-dd-header" id="acct-dd-header">
+        <div class="acct-dd-username" id="acct-dd-username"></div>
+        <div class="acct-dd-email" id="acct-dd-email"></div>
+      </div>
+      <div class="acct-dd-section" id="dd-guest-section">
+        <div class="acct-dd-item" onclick="openAuth('login')">Đăng nhập</div>
+        <div class="acct-dd-item" onclick="openAuth('register')"> Đăng ký</div>
+      </div>
+      <div class="acct-dd-section" id="dd-user-section" style="display:none">
+        <div class="acct-dd-item">      <span class="dd-icon">📋</span> Tin của tôi</div>
+        <div class="acct-dd-item">      <span class="dd-icon">⚙️</span> Cài đặt</div>
+      </div>
+      <div class="acct-dd-section" id="dd-logout-section" style="display:none">
+        <div class="acct-dd-item danger" onclick="logout()"><span class="dd-icon">🚪</span> Đăng xuất</div>
+      </div>
+    </div>
+
+    <a class="btn-primary" href="index.html?post=1" style="padding:7px 14px;font-size:13px">+ Đăng tin</a>
+  </div>
+</div>
+
+<div class="nav-bar">
+  <div class="nav-bar-inner">
+    <a class="nav-link" data-type="all" href="index.html">Tất cả</a>
+    <a class="nav-link" data-type="found" href="index.html?type=found">Nhặt được</a>
+    <a class="nav-link" data-type="lost" href="index.html?type=lost">Mất đồ</a>
+    <a class="nav-link" data-type="pet" href="index.html?type=pet">Thú cưng</a>
+    <a class="nav-link" data-type="vehicle" href="index.html?type=vehicle">Xe cộ</a>
+    <a class="nav-link" data-type="person" href="index.html?type=person">Tìm người thân</a>
+    <span class="nav-sep"></span>
+    <a class="nav-link" href="tips.html">💡 Mẹo tìm đồ</a>
+    <a class="nav-link warn active" href="scam-warnings.html">🚫 Danh sách lừa đảo</a>
+  </div>
+</div>
+
+<div class="page-hero warn">
+  <div class="hero-icon">🚫</div>
+  <h1>Danh sách số điện thoại lừa đảo</h1>
+  <p>Tổng hợp các số điện thoại, tài khoản có dấu hiệu lừa đảo khi giao dịch đồ thất lạc. Luôn cảnh giác, xác minh kỹ và không chuyển khoản trước khi gặp mặt trực tiếp.</p>
+</div>
+
+<div class="page-wrap">
+  <div class="article-toolbar">
+    <div class="sidebar-search">
+      <input type="text" id="article-search" placeholder="Tìm bài viết..." onkeydown="if(event.key==='Enter') fetchArticles(1)">
+      <button onclick="fetchArticles(1)" type="button" aria-label="Tìm kiếm">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+    </div>
+    <div class="article-toolbar-right">
+      <span class="article-toolbar-count" id="article-result-count"></span>
+      <button class="btn-primary" onclick="openArticleModal()" style="padding:8px 16px;font-size:13px;background:#dc2626" onmouseover="this.style.background='#b91c1c'" onmouseout="this.style.background='#dc2626'">+ Báo cáo lừa đảo</button>
+    </div>
+  </div>
+
+  <div class="article-grid" id="article-grid"></div>
+  <div class="pagination" id="article-pagination"></div>
+</div>
+
+<!-- ── Footer ── -->
+<footer class="site-footer">
+  <div class="footer-inner">
+    <div>
+      <div class="footer-brand">🔍 Đồ Thất Lạc HN</div>
+      <div class="footer-tagline">Kết nối người mất đồ và người nhặt được — miễn phí, nhanh chóng, vì cộng đồng Hà Nội.</div>
+      <div class="footer-social">
+        <a href="#" title="Facebook">📘</a>
+        <a href="#" title="Zalo">💬</a>
+        <a href="#" title="Email">✉️</a>
+      </div>
+    </div>
+    <div class="footer-col">
+      <h5>Chuyên mục</h5>
+      <a href="index.html">Trang chủ</a>
+      <a href="index.html?type=lost">Mất đồ</a>
+      <a href="index.html?type=found">Nhặt được</a>
+      <a href="tips.html">Mẹo tìm đồ</a>
+      <a href="scam-warnings.html">Cảnh báo lừa đảo</a>
+    </div>
+    <div class="footer-col">
+      <h5>Liên hệ</h5>
+      <div>📍 Hà Nội, Việt Nam</div>
+      <div>✉️ lienhe@dothatlachn.vn (demo)</div>
+      <div>Đồ án môn Phát triển Web</div>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© <span id="footer-year"></span> Đồ Thất Lạc HN. Đồ án học tập, phi lợi nhuận.</span>
+  </div>
+</footer>
+
+<div class="fab-stack">
+  <a class="fab-btn messenger" href="#" title="Nhắn tin Messenger (demo)">💬</a>
+  <a class="fab-btn zalo" href="#" title="Liên hệ Zalo (demo)">Z</a>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- ── Modal đăng bài viết (Mẹo tìm đồ / Cảnh báo lừa đảo — dùng chung) ── -->
+<div class="modal-bg" id="article-modal" style="display:none" onclick="handleArticleOverlayClick(event)">
+  <div class="modal modal-wide">
+    <h3 id="article-modal-title">💡 Đăng mẹo tìm đồ</h3>
+
+    <div class="form-row">
+      <label>Tiêu đề *</label>
+      <input type="text" id="a-title" placeholder="VD: 5 việc cần làm ngay khi phát hiện mất ví">
+    </div>
+
+    <div class="form-row">
+      <label>Tóm tắt ngắn</label>
+      <input type="text" id="a-summary" placeholder="1 câu mô tả ngắn gọn, hiện ở thẻ bài viết">
+    </div>
+
+    <div class="form-row" id="a-scam-row" style="display:none">
+      <label>Số điện thoại / tài khoản bị tố cáo</label>
+      <input type="text" id="a-scam-contact" placeholder="VD: 09xx xxx xxx hoặc số tài khoản ngân hàng">
+    </div>
+
+    <div class="form-row">
+      <label>Nội dung *</label>
+      <textarea id="a-content" style="min-height:140px" placeholder="Mỗi dòng là 1 đoạn văn trong bài viết..."></textarea>
+      <div class="form-hint">Xuống dòng (Enter) để tách đoạn — mỗi dòng sẽ hiển thị thành 1 đoạn văn riêng ở trang chi tiết.</div>
+    </div>
+
+    <div class="form-row">
+      <label>Ảnh minh họa</label>
+      <div class="img-upload-box" onclick="document.getElementById('a-img').click()">
+        <input type="file" id="a-img" accept="image/*" style="display:none">
+        <div class="upload-icon">📷</div>
+        <p id="a-upload-text">Bấm để chọn ảnh (JPG, PNG...)</p>
+        <img id="a-img-preview" class="img-preview" alt="preview">
+      </div>
+    </div>
+
+    <div class="modal-btns">
+      <button class="btn-ghost" onclick="closeArticleModal()">Hủy</button>
+      <button class="btn-primary" onclick="submitArticle()">Đăng bài</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Auth Modal ── -->
+<div class="auth-modal-bg" id="auth-modal" style="display:none" onclick="handleAuthOverlay(event)">
+  <div class="auth-modal" id="auth-modal-inner">
+    <button class="auth-modal-close" onclick="closeAuth()">✕</button>
+    <div class="auth-logo">🔍</div>
+    <div class="auth-title">Đồ Thất Lạc HN</div>
+    <div class="auth-subtitle" id="auth-subtitle">Đăng nhập để đăng tin và theo dõi</div>
+
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tab-login" onclick="switchAuthTab('login')">Đăng nhập</button>
+      <button class="auth-tab" id="tab-register" onclick="switchAuthTab('register')">Đăng ký</button>
+    </div>
+
+    <div class="auth-error" id="auth-error"></div>
+    <div class="auth-success" id="auth-success"></div>
+
+    <div class="auth-form active" id="form-login">
+      <div class="auth-field">
+        <label>Email</label>
+        <input type="email" id="login-email" placeholder="ten@email.com" autocomplete="email">
+      </div>
+      <div class="auth-field">
+        <label>Mật khẩu</label>
+        <input type="password" id="login-pass" placeholder="Nhập mật khẩu" autocomplete="current-password">
+        <div class="input-hint" style="font-size:11px;color:#aaa;margin-top:4px;text-align:right">
+          <a href="#" style="color:#2563eb;text-decoration:none;font-size:11px" onclick="switchAuthTab('forgot');return false">Quên mật khẩu?</a>
+        </div>
+      </div>
+      <button class="btn-auth" onclick="doLogin()">Đăng nhập</button>
+      <div class="auth-footer-text">Chưa có tài khoản? <a onclick="switchAuthTab('register')">Đăng ký ngay</a></div>
+    </div>
+
+    <div class="auth-form" id="form-register">
+      <div class="auth-field">
+        <label>Họ và tên</label>
+        <input type="text" id="reg-name" placeholder="Nguyễn Văn A" autocomplete="name">
+      </div>
+      <div class="auth-field">
+        <label>Email</label>
+        <input type="email" id="reg-email" placeholder="ten@email.com" autocomplete="email">
+      </div>
+      <div class="auth-field">
+        <label>Số điện thoại</label>
+        <input type="tel" id="reg-phone" placeholder="0912 345 678" maxlength="11">
+      </div>
+      <div class="auth-field">
+        <label>Mật khẩu</label>
+        <input type="password" id="reg-pass" placeholder="Tối thiểu 6 ký tự" autocomplete="new-password">
+      </div>
+      <div class="auth-field">
+        <label>Xác nhận mật khẩu</label>
+        <input type="password" id="reg-pass2" placeholder="Nhập lại mật khẩu" autocomplete="new-password">
+      </div>
+      <button class="btn-auth" onclick="doRegister()">Tạo tài khoản</button>
+      <div class="auth-footer-text" style="margin-top:.5rem">Đã có tài khoản? <a onclick="switchAuthTab('login')">Đăng nhập</a></div>
+    </div>
+
+    <div class="auth-form" id="form-forgot">
+      <div style="font-size:13px;color:#666;margin-bottom:1rem;line-height:1.6">Nhập email của bạn, chúng tôi sẽ gửi link đặt lại mật khẩu.</div>
+      <div class="auth-field">
+        <label>Email</label>
+        <input type="email" id="forgot-email" placeholder="ten@email.com">
+      </div>
+      <button class="btn-auth" onclick="doForgotPassword()">Gửi link đặt lại</button>
+      <div class="auth-footer-text" style="margin-top:.75rem"><a onclick="switchAuthTab('login')">← Quay lại đăng nhập</a></div>
+    </div>
+  </div>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/img-utils.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/posts.js"></script>
+<script src="js/articles.js"></script>
+<script>articleKind = 'scam';</script>
+<script src="js/ui.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

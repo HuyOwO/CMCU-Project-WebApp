@@ -6,6 +6,7 @@ const connectDB = require('./config/db');
 const { notFound, errorHandler } = require('./middleware/errorHandler');
 const authRoutes = require('./routes/authRoutes');
 const postRoutes = require('./routes/postRoutes');
+const articleRoutes = require('./routes/articleRoutes');
 
 // Kết nối MongoDB Atlas
 connectDB();
@@ -23,7 +24,6 @@ const whitelist = (process.env.CLIENT_ORIGIN || 'http://localhost:5500,http://12
 app.use(
   cors({
     origin(origin, callback) {
-      // origin undefined = gọi từ Postman/server-to-server -> vẫn cho phép
       if (!origin || whitelist.includes(origin)) return callback(null, true);
       callback(new Error('CORS: origin này không được phép gọi API.'));
     },
@@ -38,6 +38,7 @@ app.get('/', (req, res) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api/posts', postRoutes);
+app.use('/api/articles', articleRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

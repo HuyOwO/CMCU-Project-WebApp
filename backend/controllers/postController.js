@@ -2,10 +2,30 @@ const Post = require('../models/Post');
 
 const PAGE_SIZE_DEFAULT = 8;
 
-// @route  GET /api/posts?type=&district=&status=&urgent=&dateFrom=&dateTo=&q=&sort=&page=&limit=
+// Với các tin cũ chưa có field "category" (hoặc mặc định 'other'), suy luận tạm
+// từ "type" để bộ lọc danh mục vẫn hoạt động hợp lý trên dữ liệu cũ.
+function inferCategoryFromType(type) {
+  if (type === 'pet') return 'pet';
+  if (type === 'vehicle') return 'vehicle';
+  return null;
+}
+
+// Cho phép truyền category dạng 1 giá trị ("pet") hoặc nhiều giá trị cách nhau
+// bởi dấu phẩy ("pet,vehicle") — khớp với checkbox nhiều lựa chọn ở sidebar.
+function parseCategoryParam(category) {
+  if (!category) return null;
+  const arr = String(category)
+    .split(',')
+    .map((c) => c.trim())
+    .filter(Boolean);
+  return arr.length ? arr : null;
+}
+
+// @route  GET /api/posts?type=&category=&district=&status=&urgent=&dateFrom=&dateTo=&q=&sort=&page=&limit=&excludeId=
 async function getPosts(req, res, next) {
   try {
-    const { type, district, status, urgent, dateFrom, dateTo, q, sort, page, limit } = req.query;
+    const { type, category, district, status, urgent, dateFrom, dateTo, q, sort, page, limit, excludeId } =
+      req.query;
 
     const filter = {};
     if (type && type !== 'all') filter.type = type;
@@ -13,18 +33,38 @@ async function getPosts(req, res, next) {
     if (status) filter.status = status;
     if (urgent === 'urgent') filter.isUrgent = true;
     if (urgent === 'reward') filter.reward = { $nin: [null, ''] };
+    if (excludeId) filter._id = { $ne: excludeId };
+
+    const categories = parseCategoryParam(category);
+    if (categories) {
+      // Bao gồm cả tin cũ chưa gắn category nhưng suy luận được từ type trùng khớp
+      const legacyTypes = categories
+        .map((c) => (c === 'pet' ? 'pet' : c === 'vehicle' ? 'vehicle' : null))
+        .filter(Boolean);
+      filter.$or = [
+        { category: { $in: categories } },
+        ...(legacyTypes.length ? [{ category: { $exists: false }, type: { $in: legacyTypes } }] : []),
+      ];
+    }
+
     if (dateFrom || dateTo) {
       filter.date = {};
       if (dateFrom) filter.date.$gte = dateFrom;
       if (dateTo) filter.date.$lte = dateTo;
     }
     if (q) {
-      // tìm không phân biệt hoa/thường trên tên, địa điểm, quận, mô tả
       const regex = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
-      filter.$or = [{ name: regex }, { location: regex }, { district: regex }, { desc: regex }];
+      const textOr = [{ name: regex }, { location: regex }, { district: regex }, { desc: regex }];
+      // Nếu đã có $or (do lọc category) thì gộp bằng $and để không đè lên nhau
+      if (filter.$or) {
+        filter.$and = [{ $or: filter.$or }, { $or: textOr }];
+        delete filter.$or;
+      } else {
+        filter.$or = textOr;
+      }
     }
 
-    let sortOption = { createdAt: -1 }; // mới nhất (mặc định)
+    let sortOption = { createdAt: -1 };
     if (sort === 'views') sortOption = { views: -1 };
     if (sort === 'urgent') sortOption = { isUrgent: -1, createdAt: -1 };
 
@@ -39,8 +79,15 @@ async function getPosts(req, res, next) {
       Post.countDocuments(filter),
     ]);
 
+    // Trả thêm "displayCategory" tiện cho frontend hiển thị badge mà không cần tự suy luận lại
+    const postsOut = posts.map((p) => {
+      const obj = p.toObject();
+      obj.displayCategory = obj.category && obj.category !== 'other' ? obj.category : inferCategoryFromType(obj.type) || obj.category || 'other';
+      return obj;
+    });
+
     res.json({
-      posts,
+      posts: postsOut,
       total,
       page: pageNum,
       pages: Math.max(Math.ceil(total / pageSize), 1),
@@ -50,7 +97,7 @@ async function getPosts(req, res, next) {
   }
 }
 
-// @route  GET /api/posts/stats  — số liệu tổng quan cho thanh thống kê
+// @route  GET /api/posts/stats
 async function getStats(req, res, next) {
   try {
     const [total, lost, found, closed, urgent] = await Promise.all([
@@ -77,10 +124,29 @@ async function getPost(req, res, next) {
   }
 }
 
+// @route  GET /api/posts/:id/related — vài tin cùng danh mục, dùng cho trang chi tiết
+async function getRelatedPosts(req, res, next) {
+  try {
+    const post = await Post.findById(req.params.id);
+    if (!post) return res.status(404).json({ message: 'Không tìm thấy tin đăng.' });
+
+    const cat = post.category && post.category !== 'other' ? post.category : inferCategoryFromType(post.type);
+
+    const filter = { _id: { $ne: post._id }, status: 'open' };
+    if (cat) filter.category = cat;
+    else filter.type = post.type;
+
+    const related = await Post.find(filter).sort({ createdAt: -1 }).limit(4);
+    res.json({ posts: related });
+  } catch (err) {
+    next(err);
+  }
+}
+
 // @route  POST /api/posts   (cần đăng nhập)
 async function createPost(req, res, next) {
   try {
-    const { type, name, district, location, phone, desc, img, date, isUrgent, reward } = req.body;
+    const { type, category, name, district, location, phone, desc, img, date, isUrgent, reward } = req.body;
 
     if (!name || !name.trim()) return res.status(400).json({ message: 'Vui lòng điền tên đồ vật.' });
     if (!location || !location.trim())
@@ -91,6 +157,7 @@ async function createPost(req, res, next) {
 
     const post = await Post.create({
       type: type || 'lost',
+      category: category || 'other',
       name: name.trim(),
       district,
       location: location.trim(),
@@ -110,7 +177,7 @@ async function createPost(req, res, next) {
   }
 }
 
-// @route  PATCH /api/posts/:id/status  (chỉ chủ tin mới đổi được trạng thái)
+// @route  PATCH /api/posts/:id/status  (chỉ chủ tin)
 async function toggleStatus(req, res, next) {
   try {
     const post = await Post.findById(req.params.id);
@@ -128,8 +195,7 @@ async function toggleStatus(req, res, next) {
   }
 }
 
-// @route  PATCH /api/posts/:id/match  (cần đăng nhập — tránh spam ẩn danh)
-// body: { action: 'add' | 'remove' }
+// @route  PATCH /api/posts/:id/match  (cần đăng nhập)
 async function toggleMatch(req, res, next) {
   try {
     const inc = req.body.action === 'remove' ? -1 : 1;
@@ -147,7 +213,7 @@ async function toggleMatch(req, res, next) {
   }
 }
 
-// @route  POST /api/posts/:id/reveal  (không cần đăng nhập — tăng lượt xem khi bấm xem SĐT)
+// @route  POST /api/posts/:id/reveal
 async function revealPhone(req, res, next) {
   try {
     const post = await Post.findByIdAndUpdate(req.params.id, { $inc: { views: 1 } }, { new: true });
@@ -179,6 +245,7 @@ module.exports = {
   getPosts,
   getStats,
   getPost,
+  getRelatedPosts,
   createPost,
   toggleStatus,
   toggleMatch,

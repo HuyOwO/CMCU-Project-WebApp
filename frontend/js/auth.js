@@ -1,9 +1,8 @@
 /* ============================================================
    AUTH.JS — đăng ký / đăng nhập / quên mật khẩu / đăng xuất
-   Thay thế Firebase Auth bằng gọi API + lưu JWT ở localStorage
    ============================================================ */
 
-let currentUser = null; // { id, name, email, phone }
+let currentUser = null; // { id, name, email, phone, role }
 
 /* ── Khôi phục phiên đăng nhập khi tải lại trang ── */
 async function initAuth() {
@@ -17,7 +16,6 @@ async function initAuth() {
     currentUser = user;
     setLoggedInUI();
   } catch (err) {
-    // token hết hạn / không hợp lệ
     setToken(null);
     currentUser = null;
     setLoggedOutUI();
@@ -39,8 +37,7 @@ async function doLogin() {
     setLoggedInUI();
     closeAuth();
     showToast('👋 Chào mừng trở lại!');
-    fetchStats();
-    fetchPosts(true);
+    if (typeof onAuthChanged === 'function') onAuthChanged();
   } catch (err) {
     showAuthError(err.message);
   }
@@ -83,7 +80,6 @@ async function doForgotPassword() {
     const data = await api.post('/auth/forgot-password', { email });
     showAuthSuccess(data.message);
     document.getElementById('forgot-email').value = '';
-    // Chế độ demo: nếu backend chưa cấu hình SMTP, nó trả kèm link reset trực tiếp
     if (data.devResetUrl) {
       console.log('🔗 [DEV] Link đặt lại mật khẩu:', data.devResetUrl);
       showToast('ℹ️ Chưa cấu hình email — xem link reset trong Console (F12) để demo.');
@@ -99,22 +95,33 @@ function logout() {
   currentUser = null;
   setLoggedOutUI();
   showToast('👋 Đã đăng xuất thành công.');
-  fetchPosts(true);
+  if (typeof onAuthChanged === 'function') onAuthChanged();
+}
+
+function isLoggedIn() {
+  return !!currentUser;
+}
+
+// Chạy `action()` nếu đã đăng nhập; nếu chưa thì mở modal đăng nhập kèm thông báo.
+function requireAuth(action, msg) {
+  if (!currentUser) {
+    openAuth('login');
+    showToast('🔒 ' + (msg || 'Vui lòng đăng nhập để thực hiện thao tác này.'));
+    return false;
+  }
+  if (action) action();
+  return true;
 }
 
 function requireAuthThenPost() {
-  if (!currentUser) {
-    openAuth('login');
-    showToast('🔒 Vui lòng đăng nhập để đăng tin.');
-  } else {
-    openModal();
-  }
+  requireAuth(() => openModal(), 'Vui lòng đăng nhập để đăng tin.');
 }
 
 /* ── Alert helpers ── */
 function clearAuthMessages() {
   ['auth-error', 'auth-success'].forEach((id) => {
     const el = document.getElementById(id);
+    if (!el) return;
     el.style.display = 'none';
     el.textContent = '';
   });
@@ -204,8 +211,10 @@ function toggleAcctDropdown() {
 
 document.addEventListener('click', function (e) {
   if (!e.target.closest('.header-actions')) {
-    document.getElementById('acct-dropdown').classList.remove('open');
-    document.getElementById('acct-btn').classList.remove('open');
+    const dd = document.getElementById('acct-dropdown');
+    const btn = document.getElementById('acct-btn');
+    if (dd) dd.classList.remove('open');
+    if (btn) btn.classList.remove('open');
   }
 });
 

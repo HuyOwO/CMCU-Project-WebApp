@@ -1,213 +1,162 @@
 # 🔍 Đồ Thất Lạc HN
 
-Website đăng tin tìm đồ thất lạc / nhặt được ở Hà Nội. Đồ án môn Phát triển Web Khóa 4 Trường Đại Học CMC. 
+Website đăng tin tìm đồ thất lạc / nhặt được ở Hà Nội. Đồ án môn Phát triển Web.
+
+> **Bản cập nhật này** đổi giao diện sang bố cục kiểu **sidebar bộ lọc + lưới tin**
+> (lấy cảm hứng từ timdothatlac.vn), thêm **trang chi tiết riêng** cho mỗi tin đăng,
+> và thêm hệ thống bài viết **"Mẹo tìm đồ"** + **"Số điện thoại lừa đảo"** với trang
+> danh sách + trang chi tiết riêng cho từng bài, lưu trong MongoDB.
 
 ---
 
 ## 1. Tính năng chính
 
 - Đăng tin mất đồ / nhặt được / thú cưng / xe cộ / tìm người, kèm ảnh (nén phía client).
+- **Trang chi tiết riêng** cho mỗi tin đăng (`post-detail.html?id=...`) — xem đầy đủ mô tả,
+  tin liên quan cùng danh mục, và các thao tác (xem SĐT, quan tâm, đánh dấu đã tìm thấy, báo cáo).
 - Đăng ký / đăng nhập bằng email + mật khẩu, quên mật khẩu qua email.
-- Lọc theo loại tin, quận, trạng thái, tin khẩn cấp/có thưởng, khoảng ngày, tìm kiếm theo từ khoá.
-- Sắp xếp theo mới nhất / khẩn cấp / lượt xem, phân trang kiểu "Xem thêm".
+- Lọc theo loại tin (nav bar), **danh mục đồ vật** (sidebar, kiểu Ví/Giấy tờ, Thú cưng,
+  Điện thoại/Tablet/Laptop, Đồ gia dụng, Xe cộ, Đồ khác), quận, trạng thái, khẩn cấp/có thưởng,
+  khoảng ngày, từ khoá — phân trang dạng số.
+- **Mẹo tìm đồ**: trang danh sách (`tips.html`) + trang chi tiết (`article-detail.html`),
+  người dùng đã đăng nhập có thể đăng bài mới.
+- **Số điện thoại lừa đảo**: trang danh sách (`scam-warnings.html`) + trang chi tiết,
+  nổi bật số điện thoại/tài khoản bị tố cáo ở đầu bài.
 - Đánh dấu "Quan tâm", đánh dấu "Đã tìm thấy" (chỉ chủ tin), chia sẻ, báo cáo tin nghi ngờ.
 - Thống kê tổng số tin / mất / nhặt được / đã đóng / khẩn cấp.
-- Dark mode, tự động cập nhật tin mới (polling mỗi 30 giây).
+- Dark mode, tự động cập nhật số liệu thống kê (polling mỗi 30 giây).
 
 ## 2. Kiến trúc tổng quan
 
 ```
 ┌──────────────────┐        HTTPS / REST API        ┌──────────────────────┐        ┌───────────────────┐
-│   FRONTEND        │ ───────────────────────────▶  │   BACKEND             │ ─────▶ │  MongoDB Atlas      │
-│   HTML/CSS/JS      │ ◀─────────────────────────── │   Node.js + Express    │ ◀───── │  (Free M0 cluster)  │
-│   (GitHub Pages)   │        JSON + JWT              │   (Render Free Web    │        └───────────────────┘
-└──────────────────┘                                │    Service)            │
-                                                      └──────────────────────┘
-        ▲                                                       ▲
-        │                    push code                          │  auto-deploy khi push
-        └───────────────────── GitHub Repo (source of truth) ───┘
+│   FRONTEND         │ ───────────────────────────▶  │   BACKEND              │ ─────▶ │  MongoDB Atlas      │
+│   HTML/CSS/JS       │ ◀─────────────────────────── │   Node.js + Express     │ ◀───── │  (Free M0 cluster)  │
+│   (GitHub Pages)    │        JSON + JWT              │   (Render Free Web     │        └───────────────────┘
+└──────────────────┘                                 │    Service)             │
+                                                       └──────────────────────┘
 ```
 
-- **Frontend**: HTML/CSS/JS thuần (không framework), gọi API bằng `fetch`. Triển khai bằng **GitHub Pages**
-  (deploy tự động qua GitHub Actions mỗi khi push vào `main`).
-- **Backend**: Node.js + Express, xác thực bằng JWT, kết nối MongoDB qua Mongoose. Triển khai bằng
-  **Render** (Free Web Service).
-- **Database**: **MongoDB Atlas** — cluster M0 miễn phí vĩnh viễn (512MB).
-- **Repo**: một repo GitHub duy nhất (monorepo) chứa cả `frontend/` và `backend/`, vừa là nơi lưu code
-  vừa là "nguồn" để cả GitHub Pages và Render tự động deploy lại mỗi khi có commit mới.
+- **Frontend**: HTML/CSS/JS thuần (không framework, không build step), nhiều trang tĩnh
+  gọi API bằng `fetch`. Triển khai bằng **GitHub Pages**.
+- **Backend**: Node.js + Express, xác thực JWT, MongoDB qua Mongoose. Triển khai bằng **Render**.
+- **Database**: **MongoDB Atlas** — 3 collection chính: `users`, `posts`, `articles`.
 
-## 3. Công nghệ sử dụng
-
-| Thành phần        | Công nghệ                                          |
-|--------------------|-----------------------------------------------------|
-| Frontend           | HTML5, CSS3 (Flexbox/Grid), JavaScript (vanilla)    |
-| Backend            | Node.js, Express 4                                  |
-| Database           | MongoDB Atlas (Mongoose ODM)                        |
-| Xác thực           | JWT (jsonwebtoken) + mã hoá mật khẩu (bcryptjs)      |
-| Gửi email          | Nodemailer (SMTP Gmail, tuỳ chọn)                    |
-| Hosting frontend   | GitHub Pages                                         |
-| Hosting backend    | Render (Free Web Service)                            |
-| CI/CD              | GitHub Actions                                       |
-
-## 4. Cấu trúc thư mục
+## 3. Cấu trúc thư mục
 
 ```
 dothatlac-hn/
-├── backend/                   # REST API (Node.js/Express)
-│   ├── config/db.js            # kết nối MongoDB
-│   ├── controllers/            # xử lý logic nghiệp vụ
-│   ├── middleware/              # auth (JWT) + xử lý lỗi tập trung
-│   ├── models/                  # schema Mongoose (User, Post)
-│   ├── routes/                   # định nghĩa endpoint
-│   ├── utils/                     # helper (JWT, gửi email)
-│   ├── server.js                  # điểm khởi động app
-│   ├── package.json
-│   └── .env.example                # mẫu biến môi trường
+├── backend/
+│   ├── config/db.js
+│   ├── controllers/           # postController, articleController (mới), authController
+│   ├── middleware/            # auth (JWT), errorHandler
+│   ├── models/                 # User, Post (+category), Article (mới)
+│   ├── routes/                  # postRoutes, articleRoutes (mới), authRoutes
+│   ├── scripts/seedArticles.js   # tạo vài bài mẹo/cảnh báo mẫu để demo nhanh
+│   ├── utils/
+│   ├── server.js
+│   └── package.json
 │
-├── frontend/                  # giao diện tĩnh (HTML/CSS/JS)
-│   ├── css/style.css
+├── frontend/
+│   ├── css/style.css            # 1 file duy nhất, có sẵn dark mode cho toàn bộ layout mới
 │   ├── js/
-│   │   ├── config.js            # URL của backend API
-│   │   ├── api.js               # helper gọi fetch + JWT
-│   │   ├── auth.js               # đăng nhập/đăng ký/đăng xuất
-│   │   ├── posts.js               # state + hành động liên quan tin đăng
-│   │   ├── ui.js                   # render giao diện, bộ lọc, modal
-│   │   └── main.js                  # khởi động app, dark mode, polling
-│   ├── index.html
+│   │   ├── config.js             # URL backend
+│   │   ├── api.js                 # helper gọi fetch + JWT
+│   │   ├── img-utils.js            # nén ảnh phía client (dùng chung cho tin đăng & bài viết)
+│   │   ├── auth.js                  # đăng nhập/đăng ký/đăng xuất
+│   │   ├── posts.js                  # state + API cho tin đăng (danh sách + chi tiết)
+│   │   ├── articles.js                # state + API cho Mẹo tìm đồ / Cảnh báo lừa đảo
+│   │   ├── ui.js                       # render toàn bộ giao diện (card, sidebar, phân trang...)
+│   │   └── main.js                      # khởi động theo từng trang, dark mode
+│   ├── index.html                # trang chủ: sidebar lọc + lưới tin + 2 khối mẹo/cảnh báo
+│   ├── post-detail.html           # chi tiết 1 tin đăng + tin liên quan
+│   ├── tips.html                    # danh sách "Mẹo tìm đồ"
+│   ├── scam-warnings.html            # danh sách "Số điện thoại lừa đảo"
+│   ├── article-detail.html            # chi tiết 1 bài viết (dùng chung cho cả 2 loại)
 │   └── reset-password.html
 │
-├── .github/workflows/deploy-frontend.yml   # CI/CD: tự deploy frontend lên GitHub Pages
-├── render.yaml                              # Blueprint để deploy backend lên Render
-├── .gitignore
+├── render.yaml
 └── README.md
 ```
 
-## 5. Chạy thử ở máy local
+## 4. Mô hình dữ liệu — những gì thay đổi
 
-### 5.1. Backend
+- **`Post`**: giữ nguyên toàn bộ field cũ, **thêm field mới** `category` (enum:
+  `wallet | pet | electronics | household | vehicle | other`) dùng cho bộ lọc danh mục ở
+  sidebar. Field này có `default: 'other'` nên **không phá dữ liệu cũ** — tin đăng trước khi
+  cập nhật vẫn hoạt động bình thường, chỉ là mặc định rơi vào danh mục "Đồ vật khác" cho tới khi
+  người đăng sửa lại.
+- **`Article`** (mới): `kind` (`tip` | `scam`), `title`, `slug` (tự sinh từ tiêu đề), `thumbnail`,
+  `summary`, `content` (mảng đoạn văn), `scamContact` (chỉ dùng cho `kind: 'scam'`), `views`,
+  `author`, `authorName`.
+- **`User`**: thêm field `role` (`user` | `admin`, mặc định `user`) — dự phòng cho việc phân
+  quyền quản trị bài viết sau này (hiện tại bất kỳ ai đăng nhập cũng đăng được Mẹo tìm đồ / Cảnh
+  báo lừa đảo, giống cách đăng tin thường; muốn giới hạn chỉ admin mới đăng được thì sửa điều kiện
+  trong `articleController.createArticle`).
+
+## 5. API endpoints
+
+| Method | Endpoint                        | Mô tả                                             | Cần đăng nhập? |
+|--------|----------------------------------|----------------------------------------------------|:---:|
+| POST   | `/api/auth/register`              | Đăng ký tài khoản                                    | ✗ |
+| POST   | `/api/auth/login`                  | Đăng nhập                                             | ✗ |
+| GET    | `/api/auth/me`                      | Lấy thông tin bản thân                                 | ✓ |
+| POST   | `/api/auth/forgot-password`          | Gửi yêu cầu đặt lại mật khẩu                            | ✗ |
+| PUT    | `/api/auth/reset-password/:token`     | Đặt mật khẩu mới bằng token                               | ✗ |
+| GET    | `/api/posts`                           | Danh sách tin (lọc theo type/category/district/..., phân trang) | ✗ |
+| GET    | `/api/posts/stats`                      | Số liệu thống kê tổng quan                                | ✗ |
+| GET    | `/api/posts/:id`                         | Chi tiết 1 tin                                              | ✗ |
+| GET    | `/api/posts/:id/related`                  | Vài tin cùng danh mục — dùng cho trang chi tiết               | ✗ |
+| POST   | `/api/posts`                               | Đăng tin mới                                                  | ✓ |
+| PATCH  | `/api/posts/:id/status`                     | Đổi trạng thái (đã tìm thấy / mở lại) — chỉ chủ tin              | ✓ |
+| PATCH  | `/api/posts/:id/match`                       | Đánh dấu "Quan tâm"                                              | ✓ |
+| POST   | `/api/posts/:id/reveal`                       | Xem số điện thoại (tăng lượt xem)                                  | ✗ |
+| DELETE | `/api/posts/:id`                               | Xoá tin — chỉ chủ tin                                                | ✓ |
+| GET    | `/api/articles?kind=tip\|scam`                  | Danh sách bài viết theo loại, phân trang/tìm kiếm                     | ✗ |
+| GET    | `/api/articles/:idOrSlug`                        | Chi tiết 1 bài viết (theo `_id` hoặc `slug`)                            | ✗ |
+| POST   | `/api/articles`                                   | Đăng bài viết mới (`kind: 'tip'` hoặc `'scam'`)                          | ✓ |
+| PATCH  | `/api/articles/:id`                                | Sửa bài viết — chủ bài viết hoặc admin                                     | ✓ |
+| DELETE | `/api/articles/:id`                                 | Xoá bài viết — chủ bài viết hoặc admin                                      | ✓ |
+
+## 6. Chạy thử ở máy local
+
+### 6.1. Backend
 
 ```bash
 cd backend
-cp .env.example .env      # rồi điền MONGODB_URI, JWT_SECRET... (xem mục 6.1)
+cp .env.example .env      # điền MONGODB_URI, JWT_SECRET...
 npm install
-npm run dev                # chạy với nodemon tại http://localhost:5000
+npm run dev                # http://localhost:5000
+
+# (tuỳ chọn) tạo vài bài Mẹo tìm đồ / Cảnh báo lừa đảo mẫu để xem giao diện có dữ liệu ngay:
+npm run seed:articles
 ```
 
-### 5.2. Frontend
+### 6.2. Frontend
 
-Frontend là file tĩnh, không cần build. Cách đơn giản nhất: cài extension **Live Server** trong VS Code,
-click phải vào `frontend/index.html` → "Open with Live Server" (thường chạy ở `http://127.0.0.1:5500`).
+File tĩnh, không cần build — dùng extension **Live Server** trong VS Code, click phải
+`frontend/index.html` → "Open with Live Server" (thường chạy ở `http://127.0.0.1:5500`).
+Nhớ thêm đúng địa chỉ đó vào `CLIENT_ORIGIN` trong `backend/.env`.
 
-> ⚠️ Nhớ thêm đúng địa chỉ Live Server (VD: `http://127.0.0.1:5500`) vào `CLIENT_ORIGIN` trong file
-> `backend/.env`, nếu không request sẽ bị chặn bởi CORS.
+## 7. Deploy
 
-## 6. Hướng dẫn deploy miễn phí (từng bước)
+Xem hướng dẫn deploy MongoDB Atlas / Render / GitHub Pages ở các bản trước — phần backend/frontend
+mới không thay đổi cách deploy, chỉ thêm 1 route (`/api/articles`) và vài trang tĩnh mới nên
+quy trình build/deploy giữ nguyên 100%.
 
-### 6.1. Tạo database — MongoDB Atlas
+## 8. Những quyết định thiết kế đáng chú ý
 
-1. Vào [mongodb.com/cloud/atlas](https://www.mongodb.com/cloud/atlas) → tạo tài khoản miễn phí.
-2. Tạo **Cluster** mới → chọn gói **M0 Free**.
-3. Mục **Database Access** → tạo 1 user (username/password) — nhớ lưu lại.
-4. Mục **Network Access** → **Add IP Address** → chọn **Allow Access from Anywhere** (`0.0.0.0/0`),
-   vì Render (gói free) dùng IP động nên không thể whitelist IP cụ thể.
-5. Mục **Database** → **Connect** → **Drivers** → copy **connection string**, dạng:
-   `mongodb+srv://<username>:<password>@cluster0.xxxxx.mongodb.net/?retryWrites=true&w=majority`
-   → thêm tên database vào giữa, VD: `.../dothatlac_hn?retryWrites=true...`
+- **Loại tin (Mất đồ/Nhặt được/Thú cưng/Xe cộ/Tìm người) vẫn là điều hướng SPA** (link có
+  `?type=`, gọi API lọc lại danh sách) thay vì tách hẳn thành nhiều route phía server như trang
+  mẫu — giữ kiến trúc đơn giản, không cần thêm framework routing.
+- **"Mẹo tìm đồ" và "Số điện thoại lừa đảo" là 2 trang thật sự riêng biệt** (`tips.html`,
+  `scam-warnings.html`), mỗi bài viết có trang chi tiết riêng (`article-detail.html?id=...`),
+  dùng chung 1 component chi tiết để đỡ trùng lặp code nhưng nội dung/URL của từng bài là độc lập.
+- **Ảnh trong danh sách tin không còn hiện SĐT/nút thao tác trực tiếp** — những phần đó chuyển
+  hết vào trang chi tiết, giống cách trang mẫu tổ chức card danh sách gọn nhẹ.
+- **Phân trang chuyển từ "Xem thêm" sang phân trang số** — khớp với trang mẫu và cũng giúp
+  polling định kỳ không làm mất vị trí trang đang xem.
 
-### 6.2. Đưa code lên GitHub
-
-```bash
-cd dothatlac-hn
-git init
-git add .
-git commit -m "[Tin nhắn commit]"
-git branch -M main
-git remote add origin https://github.com/<username>/<ten-repo>.git
-git push -u origin main
-```
-
-### 6.3. Deploy backend — Render
-
-1. Vào [render.com](https://render.com) → đăng nhập bằng GitHub.
-2. **New** → **Web Service** → chọn repo vừa push.
-3. Điền thông tin:
-   - **Root Directory**: `backend`
-   - **Runtime**: Node
-   - **Build Command**: `npm install`
-   - **Start Command**: `npm start`
-   - **Instance Type**: Free
-4. Mục **Environment** → thêm các biến giống `backend/.env.example`
-   (`MONGODB_URI`, `JWT_SECRET`, `JWT_EXPIRE`, `CLIENT_ORIGIN`, `CLIENT_RESET_URL`, và `EMAIL_*` nếu dùng).
-5. Bấm **Create Web Service**. Chờ build xong, Render cấp cho bạn 1 URL dạng
-   `https://ten-app-cua-ban.onrender.com`.
-
-   > 💡 Có thể dùng file `render.yaml` có sẵn trong repo để tạo service nhanh hơn qua
-   > **Blueprints** trong dashboard Render, thay vì điền tay từng bước ở trên.
-
-### 6.4. Deploy frontend — GitHub Pages
-
-1. Sửa file `frontend/js/config.js`, đổi dòng URL production thành URL Render thật ở bước 6.3:
-   ```js
-   : 'https://ten-app-cua-ban.onrender.com/api';
-   ```
-2. Commit & push lại thay đổi này lên `main`.
-3. Vào repo trên GitHub → **Settings** → **Pages** → mục **Source** chọn **GitHub Actions**.
-4. Workflow `.github/workflows/deploy-frontend.yml` (đã có sẵn trong repo) sẽ tự động chạy và deploy
-   mỗi khi bạn push thay đổi vào thư mục `frontend/`. Theo dõi tiến trình ở tab **Actions**.
-5. Sau khi deploy xong, trang của bạn sẽ có địa chỉ dạng:
-   `https://<username>.github.io/<ten-repo>/`
-
-### 6.5. Nối lại 2 đầu
-
-Quay lại Render → Environment → cập nhật `CLIENT_ORIGIN` và `CLIENT_RESET_URL` thành URL GitHub Pages
-thật ở bước 6.4 (VD: `CLIENT_ORIGIN=https://<username>.github.io`), rồi **Save Changes** để Render
-deploy lại. Vậy là frontend (GitHub Pages) ↔ backend (Render) ↔ database (Atlas) đã thông nhau.
-
-## 7. Biến môi trường (backend/.env)
-
-| Biến               | Ý nghĩa                                                             |
-|---------------------|----------------------------------------------------------------------|
-| `MONGODB_URI`        | Chuỗi kết nối MongoDB Atlas                                          |
-| `JWT_SECRET`          | Chuỗi bí mật để ký JWT (tự tạo, càng dài càng khó đoán)               |
-| `JWT_EXPIRE`           | Thời hạn token, mặc định `30d`                                        |
-| `PORT`                  | Cổng chạy server (Render tự set, để mặc định khi deploy)             |
-| `CLIENT_ORIGIN`          | Danh sách domain frontend được phép gọi API (CORS), cách nhau bởi `,` |
-| `CLIENT_RESET_URL`        | URL trang `reset-password.html` — dùng để build link trong email     |
-| `EMAIL_SERVICE/USER/PASS`  | (tuỳ chọn) cấu hình gửi email quên mật khẩu qua Gmail                |
-
-> Nếu không cấu hình `EMAIL_USER`/`EMAIL_PASS`, tính năng "quên mật khẩu" vẫn hoạt động ở **chế độ demo**:
-> API trả kèm `devResetUrl` để test/chấm bài mà không cần gửi email thật.
-
-## 8. Danh sách API endpoints
-
-| Method | Endpoint                        | Mô tả                                   | Cần đăng nhập? |
-|--------|----------------------------------|-------------------------------------------|:---:|
-| POST   | `/api/auth/register`              | Đăng ký tài khoản                          | ✗ |
-| POST   | `/api/auth/login`                  | Đăng nhập                                   | ✗ |
-| GET    | `/api/auth/me`                      | Lấy thông tin bản thân                       | ✓ |
-| POST   | `/api/auth/forgot-password`          | Gửi yêu cầu đặt lại mật khẩu                  | ✗ |
-| PUT    | `/api/auth/reset-password/:token`     | Đặt mật khẩu mới bằng token                     | ✗ |
-| GET    | `/api/posts`                           | Danh sách tin (lọc, sắp xếp, phân trang)          | ✗ |
-| GET    | `/api/posts/stats`                      | Số liệu thống kê tổng quan                          | ✗ |
-| GET    | `/api/posts/:id`                         | Chi tiết 1 tin                                        | ✗ |
-| POST   | `/api/posts`                              | Đăng tin mới                                            | ✓ |
-| PATCH  | `/api/posts/:id/status`                    | Đổi trạng thái (đã tìm thấy / mở lại) — chỉ chủ tin        | ✓ |
-| PATCH  | `/api/posts/:id/match`                      | Đánh dấu "Quan tâm"                                          | ✓ |
-| POST   | `/api/posts/:id/reveal`                      | Xem số điện thoại (tăng lượt xem)                              | ✗ |
-| DELETE | `/api/posts/:id`                              | Xoá tin — chỉ chủ tin                                            | ✓ |
-
-## 9. Một số quyết định thiết kế
-
-- **Vì sao Node.js/Express thay vì Firebase?** Bản gốc dùng Firebase (BaaS) gọi thẳng từ frontend.
-  Bản này tách riêng backend để thể hiện rõ kỹ năng thiết kế REST API, MVC, xác thực JWT, và
-  quyền hạn (chỉ chủ tin mới sửa/xoá được tin của mình) — những phần Firebase "giấu" hộ mình.
-- **Vì sao polling thay vì WebSocket/Socket.IO?** Bản gốc dùng `onSnapshot` của Firestore để realtime.
-  Ở đây dùng `setInterval` gọi lại API mỗi 30s — đơn giản, dễ giải thích, và tránh rủi ro mất kết nối
-  WebSocket khi Render free tier "ngủ" sau 15 phút không hoạt động.
-  → **Hướng mở rộng**: có thể nâng cấp bằng Socket.IO nếu muốn thể hiện thêm kỹ thuật real-time.
-- **Giới hạn đã biết**: Render free tier sẽ "ngủ" sau ~15 phút không có request, khiến request đầu
-  tiên sau đó mất 30–50 giây để "đánh thức" server — đây là đánh đổi tất yếu khi dùng free tier.
-
-## 10. Giấy phép
+## 9. Giấy phép
 
 Dự án phục vụ mục đích học tập.
