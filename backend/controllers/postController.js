@@ -221,6 +221,58 @@ async function toggleStatus(req, res, next) {
   }
 }
 
+// @route  PATCH /api/posts/:id   (chủ tin hoặc admin) — sửa nội dung tin đăng.
+// Nếu người sửa không phải admin/không phải user 'trusted', tin quay lại 'pending'
+// để admin duyệt lại (tránh lách duyệt bằng cách đăng nội dung vô hại rồi sửa thành lừa đảo).
+async function updatePost(req, res, next) {
+  try {
+    const post = await Post.findById(req.params.id);
+    if (!post) return res.status(404).json({ message: 'Không tìm thấy tin đăng.' });
+
+    const isOwner = post.author.toString() === req.user._id.toString();
+    const isAdmin = req.user.role === 'admin';
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({ message: 'Bạn không có quyền sửa tin này.' });
+    }
+
+    const { type, category, name, district, location, phone, desc, img, date, isUrgent, reward } = req.body;
+
+    if (name !== undefined) {
+      if (!name.trim()) return res.status(400).json({ message: 'Vui lòng điền tên đồ vật.' });
+      post.name = name.trim();
+    }
+    if (location !== undefined) {
+      if (!location.trim()) return res.status(400).json({ message: 'Vui lòng điền địa điểm cụ thể.' });
+      post.location = location.trim();
+    }
+    if (phone !== undefined) {
+      if (!/^0\d{9,10}$/.test(phone)) {
+        return res.status(400).json({ message: 'Số điện thoại không hợp lệ (VD: 0912345678).' });
+      }
+      post.phone = phone;
+    }
+    if (type !== undefined) post.type = type;
+    if (category !== undefined) post.category = category;
+    if (district !== undefined) post.district = district;
+    if (desc !== undefined) post.desc = (desc || '').trim() || 'Không có mô tả thêm.';
+    if (img !== undefined) post.img = img;
+    if (date !== undefined) post.date = date;
+    if (isUrgent !== undefined) post.isUrgent = !!isUrgent;
+    if (reward !== undefined) post.reward = (reward || '').trim();
+
+    let needsReview = false;
+    if (!isAdmin) {
+      needsReview = req.user.trustStatus !== 'trusted';
+      post.moderationStatus = needsReview ? 'pending' : 'approved';
+    }
+
+    await post.save();
+    res.json({ post, needsReview });
+  } catch (err) {
+    next(err);
+  }
+}
+
 // @route  PATCH /api/posts/:id/moderate   body: { action: 'approve'|'reject' }   (admin)
 async function moderatePost(req, res, next) {
   try {
@@ -294,6 +346,7 @@ module.exports = {
   getPost,
   getRelatedPosts,
   createPost,
+  updatePost,
   toggleStatus,
   moderatePost,
   toggleMatch,

@@ -31,15 +31,29 @@ const NAV_TITLES = {
   person: { title: 'Tìm người thân thất lạc', sub: 'Thông tin hỗ trợ tìm người thân đi lạc' },
 };
 
+// Nhãn trạng thái duyệt bài — dùng ở "Tin của tôi" và trang quản trị
+const MODERATION_CFG = {
+  pending: { label: '⏳ Chờ duyệt', cls: 'badge-mod-pending' },
+  approved: { label: '✔ Đã duyệt', cls: 'badge-mod-approved' },
+  rejected: { label: '✕ Bị từ chối', cls: 'badge-mod-rejected' },
+};
+
 // State (trang danh sách)
 let posts = [];
 let activeType = 'all';
 let currentPage = 1;
 let totalPages = 1;
 let imgDataUrl = null;
+let editingPostId = null; // null = đang đăng tin mới; có giá trị = đang sửa tin có id này
 
 // State (trang chi tiết)
 let currentPost = null;
+
+// State (trang "Tin của tôi")
+let myPosts = [];
+let myPostsPage = 1;
+let myPostsTotalPages = 1;
+let myPostsFilter = ''; // '' = tất cả | 'pending' | 'approved' | 'rejected'
 
 /* ── Local state (đã đăng nhập hay chưa cũng dùng chung, lưu theo trình duyệt) ── */
 function readIdSet(key) {
@@ -159,6 +173,46 @@ async function fetchRelatedPosts(id) {
   }
 }
 
+/* ── Trang "Tin của tôi": xem tất cả tin của chính mình, mọi trạng thái duyệt ── */
+async function fetchMyPosts(page) {
+  myPostsPage = page || 1;
+  const params = new URLSearchParams();
+  params.set('mine', '1');
+  if (myPostsFilter) params.set('moderation', myPostsFilter);
+  params.set('page', myPostsPage);
+  params.set('limit', 9);
+  try {
+    const data = await api.get('/posts?' + params.toString());
+    myPosts = data.posts;
+    myPostsTotalPages = data.pages;
+    renderMyPosts(data.total);
+  } catch (err) {
+    showToast('❌ ' + err.message);
+  }
+}
+
+function goToMyPostsPage(n) {
+  if (n < 1 || n > myPostsTotalPages || n === myPostsPage) return;
+  fetchMyPosts(n);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function setMyPostsFilter(f) {
+  myPostsFilter = f;
+  fetchMyPosts(1);
+}
+
+async function deleteMyPost(id) {
+  if (!confirm('Xoá tin đăng này? Không thể hoàn tác.')) return;
+  try {
+    await api.delete(`/posts/${id}`);
+    showToast('🗑️ Đã xoá tin đăng.');
+    fetchMyPosts(myPostsPage);
+  } catch (err) {
+    showToast('❌ ' + err.message);
+  }
+}
+
 /* ── Bấm xem số điện thoại (không cần đăng nhập) ── */
 async function revealPhone(id) {
   toggleInSet('dtl_revealed', id); // đánh dấu đã xem (không toggle lại được, chỉ add)
@@ -206,6 +260,7 @@ async function resolvePost(id) {
     }
     const idx = posts.findIndex((x) => x._id === id);
     if (idx !== -1) posts[idx] = post;
+    if (document.getElementById('my-posts-content')) fetchMyPosts(myPostsPage);
     fetchStats();
     showToast(post.status === 'closed' ? '✅ Đã đánh dấu "Đã tìm thấy" — Chúc mừng!' : '↩️ Đã mở lại tin đăng');
   } catch (err) {
@@ -227,7 +282,7 @@ function sharePost(p) {
   }
 }
 
-/* ── Đăng tin mới ── */
+/* ── Đăng tin mới HOẶC lưu chỉnh sửa (dùng chung 1 modal, phân biệt bằng editingPostId) ── */
 async function submitPost() {
   if (!currentUser) {
     showToast('🔒 Vui lòng đăng nhập để đăng tin.');
@@ -246,31 +301,48 @@ async function submitPost() {
   const oldLabel = submitBtn ? submitBtn.textContent : '';
   if (submitBtn) {
     submitBtn.disabled = true;
-    submitBtn.textContent = 'Đang đăng...';
+    submitBtn.textContent = editingPostId ? 'Đang lưu...' : 'Đang đăng...';
   }
 
-  try {
-    await api.post('/posts', {
-      type: document.getElementById('f-type').value,
-      category: document.getElementById('f-category').value,
-      name,
-      district: document.getElementById('f-district').value,
-      location,
-      phone,
-      desc: document.getElementById('f-desc').value.trim(),
-      img: imgDataUrl || null,
-      date: document.getElementById('f-date').value,
-      isUrgent: document.getElementById('f-urgent').checked,
-      reward: document.getElementById('f-reward').value.trim(),
-    });
+  const payload = {
+    type: document.getElementById('f-type').value,
+    category: document.getElementById('f-category').value,
+    name,
+    district: document.getElementById('f-district').value,
+    location,
+    phone,
+    desc: document.getElementById('f-desc').value.trim(),
+    img: imgDataUrl || null,
+    date: document.getElementById('f-date').value,
+    isUrgent: document.getElementById('f-urgent').checked,
+    reward: document.getElementById('f-reward').value.trim(),
+  };
 
-    closeModal();
-    showToast('✅ Đã đăng tin thành công!');
-    fetchStats();
-    fetchPosts(1);
+  try {
+    if (editingPostId) {
+      const { needsReview } = await api.patch(`/posts/${editingPostId}`, payload);
+      closeModal();
+      showToast(
+        needsReview
+          ? '✅ Đã lưu thay đổi — tin cần được duyệt lại trước khi hiện công khai.'
+          : '✅ Đã lưu thay đổi.'
+      );
+      editingPostId = null;
+      if (document.getElementById('my-posts-content')) fetchMyPosts(myPostsPage);
+    } else {
+      const { autoApproved } = await api.post('/posts', payload);
+      closeModal();
+      showToast(
+        autoApproved
+          ? '✅ Đã đăng tin thành công!'
+          : '⏳ Đã gửi tin — tin sẽ hiển thị công khai sau khi được quản trị viên duyệt.'
+      );
+      fetchStats();
+      fetchPosts(1);
+    }
   } catch (err) {
     console.error(err);
-    showToast('❌ ' + (err.message || 'Đăng tin lỗi, vui lòng thử lại.'));
+    showToast('❌ ' + (err.message || 'Có lỗi xảy ra, vui lòng thử lại.'));
   } finally {
     if (submitBtn) {
       submitBtn.disabled = false;

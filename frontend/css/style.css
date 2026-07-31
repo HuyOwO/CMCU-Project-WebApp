@@ -495,3 +495,83 @@
     body.dark-mode .side-note b { color: #ccc; }
 
     body.dark-mode .site-footer { background: #0d0e11; }
+
+    /* ============================================================
+       PHÂN QUYỀN — badge duyệt bài, badge tin cậy, trang quản trị
+       ============================================================ */
+    .badge-mod-pending  { background: #fef3c7; color: #92400e; }
+    .badge-mod-approved { background: #dcfce7; color: #166534; }
+    .badge-mod-rejected { background: #fee2e2; color: #991b1b; }
+
+    .trust-badge { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 20px; display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; }
+    .trust-badge.trusted   { background: #dcfce7; color: #166534; }
+    .trust-badge.untrusted { background: #fee2e2; color: #991b1b; }
+
+    .status-banner { padding: .8rem 1rem; border-radius: 10px; font-size: 13px; font-weight: 600; margin-bottom: 1rem; display: flex; align-items: center; gap: 8px; }
+    .status-banner.pending  { background: #fef3c7; color: #92400e; }
+    .status-banner.rejected { background: #fee2e2; color: #991b1b; }
+
+    /* Tabs lớn (trang quản trị: Duyệt bài / Quản lý người dùng) */
+    .admin-tabs { display: flex; gap: 4px; margin-bottom: 1.2rem; border-bottom: 1px solid #e5e5e5; }
+    .admin-tab { padding: 10px 4px; margin-right: 18px; font-size: 14px; font-weight: 600; color: #888; background: none; border: none; border-bottom: 2px solid transparent; cursor: pointer; font-family: inherit; }
+    .admin-tab:hover { color: #2563eb; }
+    .admin-tab.active { color: #2563eb; border-bottom-color: #2563eb; }
+
+    /* Tabs nhỏ lọc trạng thái (dùng ở "Tin của tôi" + hàng chờ duyệt) */
+    .filter-tabs-row { display: flex; gap: 6px; margin-bottom: 1rem; flex-wrap: wrap; }
+    .filter-tab-btn { padding: 6px 14px; border-radius: 20px; font-size: 12.5px; border: 1px solid #ddd; background: #fff; color: #555; cursor: pointer; font-family: inherit; }
+    .filter-tab-btn:hover { background: #f5f5f5; }
+    .filter-tab-btn.active { background: #eff6ff; color: #1d4ed8; border-color: #93c5fd; font-weight: 600; }
+
+    /* Hàng danh sách gọn (dùng cho hàng chờ duyệt + "Tin của tôi") */
+    .admin-row { display: flex; align-items: center; gap: 12px; background: #fff; border: 1px solid #e5e5e5; border-radius: 10px; padding: .7rem .9rem; margin-bottom: 8px; flex-wrap: wrap; }
+    .admin-row-img, .admin-row-placeholder { width: 52px; height: 52px; border-radius: 8px; object-fit: cover; background: #f4f4f5; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 18px; color: #ccc; }
+    .admin-row-body { flex: 1; min-width: 180px; }
+    .admin-row-title { font-size: 13.5px; font-weight: 600; margin-bottom: 4px; }
+    .admin-row-title a { color: inherit; text-decoration: none; }
+    .admin-row-title a:hover { color: #2563eb; }
+    .admin-row-meta { font-size: 11.5px; color: #888; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .admin-row-actions { display: flex; gap: 6px; flex-shrink: 0; flex-wrap: wrap; }
+    .btn-mini { padding: 6px 11px; border-radius: 6px; font-size: 12px; cursor: pointer; border: 1px solid #e5e5e5; background: #fff; color: #555; font-family: inherit; white-space: nowrap; }
+    .btn-mini:hover { background: #f5f5f5; }
+    .btn-mini.approve { background: #ecfdf5; border-color: #86efac; color: #166534; }
+    .btn-mini.reject  { background: #fff1f2; border-color: #fecdd3; color: #9f1239; }
+    .btn-mini.danger  { color: #dc2626; }
+    .btn-mini.danger:hover { background: #fef2f2; }
+
+    /* Hàng người dùng (Quản lý người dùng) */
+    .user-row-avatar { width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(135deg, #2563eb, #7c3aed); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; flex-shrink: 0; }
+    .user-row-name { font-size: 13.5px; font-weight: 600; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .user-row-email { font-size: 11.5px; color: #888; }
+    .btn-trust.active-trusted { background: #ecfdf5; border-color: #86efac; color: #166534; }
+    .btn-trust.active-untrusted { background: #fff1f2; border-color: #fecdd3; color: #9f1239; }
+
+    .access-denied { text-align: center; padding: 4rem 1rem; }
+    .access-denied .icon { font-size: 44px; margin-bottom: 1rem; }
+    .access-denied h2 { font-size: 18px; margin-bottom: .5rem; }
+    .access-denied p { font-size: 13.5px; color: #888; }
+
+    body.dark-mode .badge-mod-pending  { background: #3a2f0f; color: #fde68a; }
+    body.dark-mode .badge-mod-approved { background: #0f2a1a; color: #4ade80; }
+    body.dark-mode .badge-mod-rejected { background: #2a1010; color: #f87171; }
+    body.dark-mode .trust-badge.trusted   { background: #0f2a1a; color: #4ade80; }
+    body.dark-mode .trust-badge.untrusted { background: #2a1010; color: #f87171; }
+    body.dark-mode .status-banner.pending  { background: #3a2f0f; color: #fde68a; }
+    body.dark-mode .status-banner.rejected { background: #2a1010; color: #f87171; }
+    body.dark-mode .admin-tabs { border-bottom-color: #2c2c2e; }
+    body.dark-mode .admin-tab { color: #888; }
+    body.dark-mode .admin-tab.active { color: #93c5fd; border-bottom-color: #2563eb; }
+    body.dark-mode .filter-tab-btn { background: #1c1c1e; border-color: #3a3a3c; color: #999; }
+    body.dark-mode .filter-tab-btn:hover { background: #2c2c2e; }
+    body.dark-mode .filter-tab-btn.active { background: #1e3a5f; color: #93c5fd; border-color: #2563eb; }
+    body.dark-mode .admin-row { background: #1c1c1e; border-color: #2c2c2e; }
+    body.dark-mode .admin-row-img, body.dark-mode .admin-row-placeholder { background: #252527; color: #444; }
+    body.dark-mode .admin-row-meta { color: #888; }
+    body.dark-mode .btn-mini { background: #252527; border-color: #3a3a3c; color: #999; }
+    body.dark-mode .btn-mini:hover { background: #3a3a3c; }
+    body.dark-mode .btn-mini.approve { background: #0f2a1a; border-color: #166534; color: #4ade80; }
+    body.dark-mode .btn-mini.reject { background: #2a0f12; border-color: #9f1239; color: #f87171; }
+    body.dark-mode .btn-trust { background: #252527; border-color: #3a3a3c; color: #999; }
+    body.dark-mode .btn-trust.active-trusted { background: #0f2a1a; border-color: #166534; color: #4ade80; }
+    body.dark-mode .btn-trust.active-untrusted { background: #2a0f12; border-color: #9f1239; color: #f87171; }
+    body.dark-mode .access-denied p { color: #888; }

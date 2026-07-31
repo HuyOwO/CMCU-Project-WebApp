@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mẹo tìm đồ thất lạc — Đồ Thất Lạc HN</title>
+  <title>Quản trị — Đồ Thất Lạc HN</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -58,33 +58,64 @@
     <a class="nav-link" data-type="vehicle" href="index.html?type=vehicle">Xe cộ</a>
     <a class="nav-link" data-type="person" href="index.html?type=person">Tìm người thân</a>
     <span class="nav-sep"></span>
-    <a class="nav-link active" href="tips.html">💡 Mẹo tìm đồ</a>
+    <a class="nav-link" href="tips.html">💡 Mẹo tìm đồ</a>
     <a class="nav-link warn" href="scam-warnings.html">🚫 Danh sách lừa đảo</a>
   </div>
 </div>
 
-<div class="page-hero">
-  <div class="hero-icon">💡</div>
-  <h1>Mẹo tìm đồ thất lạc</h1>
-  <p>Những kinh nghiệm thực tế giúp bạn tăng cơ hội tìm lại đồ đã mất, hoặc trả đúng đồ nhặt được về cho chủ nhân.</p>
-</div>
-
 <div class="page-wrap">
-  <div class="article-toolbar">
-    <div class="sidebar-search">
-      <input type="text" id="article-search" placeholder="Tìm bài viết..." onkeydown="if(event.key==='Enter') fetchArticles(1)">
-      <button onclick="fetchArticles(1)" type="button" aria-label="Tìm kiếm">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      </button>
-    </div>
-    <div class="article-toolbar-right">
-      <span class="article-toolbar-count" id="article-result-count"></span>
-      <button class="btn-primary" id="post-article-btn" onclick="openArticleModal()" style="display:none;padding:8px 16px;font-size:13px">+ Đăng mẹo</button>
-    </div>
+  <!-- Hiện khi chưa đăng nhập, hoặc đăng nhập nhưng không phải admin -->
+  <div class="access-denied" id="access-denied" style="display:none">
+    <div class="icon">🛡️</div>
+    <h2>Chỉ quản trị viên mới truy cập được trang này</h2>
+    <p>Nếu bạn nghĩ đây là nhầm lẫn, hãy liên hệ quản trị viên hệ thống để được cấp quyền.</p>
+    <button class="btn-primary" style="margin-top:1rem" onclick="openAuth('login')" id="admin-login-btn">Đăng nhập</button>
   </div>
 
-  <div class="article-grid" id="article-grid"></div>
-  <div class="pagination" id="article-pagination"></div>
+  <!-- Hiện khi đã đăng nhập với quyền admin -->
+  <div id="admin-content" style="display:none">
+    <div class="content-head">
+      <div>
+        <h1>🛡️ Trang quản trị</h1>
+        <div class="content-sub">Duyệt tin đăng và quản lý mức độ tin cậy của người dùng</div>
+      </div>
+    </div>
+
+    <div class="admin-tabs">
+      <button class="admin-tab active" id="admin-tab-queue" onclick="switchAdminTab('queue')">🗂️ Duyệt bài</button>
+      <button class="admin-tab" id="admin-tab-users" onclick="switchAdminTab('users')">👥 Quản lý người dùng</button>
+    </div>
+
+    <!-- ── Panel: Duyệt bài ── -->
+    <div id="admin-panel-queue">
+      <div class="content-head">
+        <div class="content-sub" id="admin-queue-count">Đang tải...</div>
+      </div>
+      <div class="filter-tabs-row">
+        <button class="filter-tab-btn admin-queue-filter-tab active" data-filter="pending" onclick="setAdminQueueFilter('pending')">⏳ Chờ duyệt</button>
+        <button class="filter-tab-btn admin-queue-filter-tab" data-filter="approved" onclick="setAdminQueueFilter('approved')">✔ Đã duyệt</button>
+        <button class="filter-tab-btn admin-queue-filter-tab" data-filter="rejected" onclick="setAdminQueueFilter('rejected')">✕ Bị từ chối</button>
+        <button class="filter-tab-btn admin-queue-filter-tab" data-filter="all" onclick="setAdminQueueFilter('all')">Tất cả</button>
+      </div>
+      <div id="admin-queue-list"><div class="empty"><div class="empty-icon">⏳</div>Đang tải...</div></div>
+      <div class="pagination" id="admin-queue-pagination"></div>
+    </div>
+
+    <!-- ── Panel: Quản lý người dùng ── -->
+    <div id="admin-panel-users" style="display:none">
+      <div class="content-head">
+        <div class="content-sub" id="admin-users-count">Đang tải...</div>
+        <div class="sidebar-search" style="max-width:280px">
+          <input type="text" id="admin-user-search" placeholder="Tìm theo tên/email..." onkeydown="if(event.key==='Enter') fetchAdminUsers(1)">
+          <button onclick="fetchAdminUsers(1)" type="button" aria-label="Tìm kiếm">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </button>
+        </div>
+      </div>
+      <div id="admin-users-list"><div class="empty"><div class="empty-icon">⏳</div>Đang tải...</div></div>
+      <div class="pagination" id="admin-users-pagination"></div>
+    </div>
+  </div>
 </div>
 
 <!-- ── Footer ── -->
@@ -125,49 +156,6 @@
 </div>
 
 <div class="toast" id="toast"></div>
-
-<!-- ── Modal đăng bài viết (Mẹo tìm đồ / Cảnh báo lừa đảo — dùng chung) ── -->
-<div class="modal-bg" id="article-modal" style="display:none" onclick="handleArticleOverlayClick(event)">
-  <div class="modal modal-wide">
-    <h3 id="article-modal-title">💡 Đăng mẹo tìm đồ</h3>
-
-    <div class="form-row">
-      <label>Tiêu đề *</label>
-      <input type="text" id="a-title" placeholder="VD: 5 việc cần làm ngay khi phát hiện mất ví">
-    </div>
-
-    <div class="form-row">
-      <label>Tóm tắt ngắn</label>
-      <input type="text" id="a-summary" placeholder="1 câu mô tả ngắn gọn, hiện ở thẻ bài viết">
-    </div>
-
-    <div class="form-row" id="a-scam-row" style="display:none">
-      <label>Số điện thoại / tài khoản bị tố cáo</label>
-      <input type="text" id="a-scam-contact" placeholder="VD: 09xx xxx xxx hoặc số tài khoản ngân hàng">
-    </div>
-
-    <div class="form-row">
-      <label>Nội dung *</label>
-      <textarea id="a-content" style="min-height:140px" placeholder="Mỗi dòng là 1 đoạn văn trong bài viết..."></textarea>
-      <div class="form-hint">Xuống dòng (Enter) để tách đoạn — mỗi dòng sẽ hiển thị thành 1 đoạn văn riêng ở trang chi tiết.</div>
-    </div>
-
-    <div class="form-row">
-      <label>Ảnh minh họa</label>
-      <div class="img-upload-box" onclick="document.getElementById('a-img').click()">
-        <input type="file" id="a-img" accept="image/*" style="display:none">
-        <div class="upload-icon">📷</div>
-        <p id="a-upload-text">Bấm để chọn ảnh (JPG, PNG...)</p>
-        <img id="a-img-preview" class="img-preview" alt="preview">
-      </div>
-    </div>
-
-    <div class="modal-btns">
-      <button class="btn-ghost" onclick="closeArticleModal()">Hủy</button>
-      <button class="btn-primary" onclick="submitArticle()">Đăng bài</button>
-    </div>
-  </div>
-</div>
 
 <!-- ── Auth Modal ── -->
 <div class="auth-modal-bg" id="auth-modal" style="display:none" onclick="handleAuthOverlay(event)">
@@ -244,7 +232,7 @@
 <script src="js/auth.js"></script>
 <script src="js/posts.js"></script>
 <script src="js/articles.js"></script>
-<script>articleKind = 'tip';</script>
+<script src="js/admin.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/main.js"></script>
 </body>

@@ -190,6 +190,8 @@ function setLoggedInUI() {
   document.getElementById('dd-guest-section').style.display = 'none';
   document.getElementById('dd-user-section').style.display = 'block';
   document.getElementById('dd-logout-section').style.display = 'block';
+  const adminItem = document.getElementById('dd-admin-item');
+  if (adminItem) adminItem.style.display = currentUser.role === 'admin' ? 'flex' : 'none';
 }
 
 function setLoggedOutUI() {

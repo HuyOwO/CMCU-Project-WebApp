@@ -7,6 +7,7 @@ const {
   getPost,
   getRelatedPosts,
   createPost,
+  updatePost,
   toggleStatus,
   moderatePost,
   toggleMatch,
@@ -26,6 +27,7 @@ router.get('/:id/related', getRelatedPosts);
 router.get('/:id', optionalAuth, getPost);
 
 router.post('/', protect, createPost);
+router.patch('/:id', protect, updatePost);
 router.patch('/:id/status', protect, toggleStatus);
 router.patch('/:id/moderate', protect, adminOnly, moderatePost);
 router.patch('/:id/match', protect, toggleMatch);

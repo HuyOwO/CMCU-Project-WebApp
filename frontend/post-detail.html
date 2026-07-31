@@ -37,8 +37,8 @@
         <div class="acct-dd-item" onclick="openAuth('register')"> Đăng ký</div>
       </div>
       <div class="acct-dd-section" id="dd-user-section" style="display:none">
-        <div class="acct-dd-item">      <span class="dd-icon">📋</span> Tin của tôi</div>
-        <div class="acct-dd-item">      <span class="dd-icon">⚙️</span> Cài đặt</div>
+        <div class="acct-dd-item" onclick="location.href='my-posts.html'"><span class="dd-icon">📋</span> Tin của tôi</div>
+        <div class="acct-dd-item" id="dd-admin-item" style="display:none" onclick="location.href='admin.html'"><span class="dd-icon">🛡️</span> Quản trị</div>
       </div>
       <div class="acct-dd-section" id="dd-logout-section" style="display:none">
         <div class="acct-dd-item danger" onclick="logout()"><span class="dd-icon">🚪</span> Đăng xuất</div>

@@ -67,6 +67,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (document.getElementById('article-grid')) {
     fetchArticles(1);
     wireImageUpload({ inputId: 'a-img', previewId: 'a-img-preview', textId: 'a-upload-text', onDone: (d) => (articleImgDataUrl = d) });
+
+    // Chỉ admin được đăng Mẹo tìm đồ / Cảnh báo lừa đảo — ẩn nút với người dùng thường
+    const postArticleBtn = document.getElementById('post-article-btn');
+    if (postArticleBtn) postArticleBtn.style.display = currentUser && currentUser.role === 'admin' ? 'inline-block' : 'none';
   }
 
   // ── Trang chi tiết 1 bài viết (article-detail.html) ──
@@ -74,5 +78,28 @@ document.addEventListener('DOMContentLoaded', async () => {
     const id = new URLSearchParams(location.search).get('id');
     if (id) fetchArticleDetail(id);
     else renderArticleDetailError('Thiếu mã bài viết.');
+  }
+
+  // ── Trang "Tin của tôi" (my-posts.html): cần đăng nhập ──
+  if (document.getElementById('my-posts-content')) {
+    wireImageUpload({ inputId: 'f-img', previewId: 'img-preview', textId: 'upload-text', onDone: (d) => (imgDataUrl = d) });
+    if (!currentUser) {
+      document.getElementById('access-denied').style.display = 'block';
+    } else {
+      document.getElementById('my-posts-content').style.display = 'block';
+      fetchMyPosts(1);
+    }
+  }
+
+  // ── Trang quản trị (admin.html): chỉ role === 'admin' ──
+  if (document.getElementById('admin-content')) {
+    if (!currentUser || currentUser.role !== 'admin') {
+      document.getElementById('access-denied').style.display = 'block';
+      const loginBtn = document.getElementById('admin-login-btn');
+      if (loginBtn && currentUser) loginBtn.style.display = 'none'; // đã đăng nhập rồi nhưng không phải admin
+    } else {
+      document.getElementById('admin-content').style.display = 'block';
+      fetchAdminQueue(1);
+    }
   }
 });

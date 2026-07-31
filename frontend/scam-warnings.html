@@ -37,8 +37,8 @@
         <div class="acct-dd-item" onclick="openAuth('register')"> Đăng ký</div>
       </div>
       <div class="acct-dd-section" id="dd-user-section" style="display:none">
-        <div class="acct-dd-item">      <span class="dd-icon">📋</span> Tin của tôi</div>
-        <div class="acct-dd-item">      <span class="dd-icon">⚙️</span> Cài đặt</div>
+        <div class="acct-dd-item" onclick="location.href='my-posts.html'"><span class="dd-icon">📋</span> Tin của tôi</div>
+        <div class="acct-dd-item" id="dd-admin-item" style="display:none" onclick="location.href='admin.html'"><span class="dd-icon">🛡️</span> Quản trị</div>
       </div>
       <div class="acct-dd-section" id="dd-logout-section" style="display:none">
         <div class="acct-dd-item danger" onclick="logout()"><span class="dd-icon">🚪</span> Đăng xuất</div>
@@ -79,7 +79,7 @@
     </div>
     <div class="article-toolbar-right">
       <span class="article-toolbar-count" id="article-result-count"></span>
-      <button class="btn-primary" onclick="openArticleModal()" style="padding:8px 16px;font-size:13px;background:#dc2626" onmouseover="this.style.background='#b91c1c'" onmouseout="this.style.background='#dc2626'">+ Báo cáo lừa đảo</button>
+      <button class="btn-primary" id="post-article-btn" onclick="openArticleModal()" style="display:none;padding:8px 16px;font-size:13px;background:#dc2626" onmouseover="this.style.background='#b91c1c'" onmouseout="this.style.background='#dc2626'">+ Báo cáo lừa đảo</button>
     </div>
   </div>
 
