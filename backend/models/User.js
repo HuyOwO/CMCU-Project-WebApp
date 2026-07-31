@@ -27,13 +27,20 @@ const userSchema = new mongoose.Schema(
       minlength: 6,
       select: false,
     },
-    // Vai trò tài khoản — dùng để phân quyền quản trị viên (VD: đăng bài
-    // "Mẹo tìm đồ" / "Cảnh báo lừa đảo"). Mặc định mọi người đăng ký đều là 'user'.
+    // Vai trò tài khoản — dùng để phân quyền quản trị viên (VD: duyệt bài, xoá bài,
+    // đăng Mẹo tìm đồ/Cảnh báo lừa đảo, gắn nhãn tin cậy cho user khác).
     // Muốn nâng 1 tài khoản lên admin: vào MongoDB Atlas > collection users > sửa field role = 'admin'.
     role: {
       type: String,
       enum: ['user', 'admin'],
       default: 'user',
+    },
+    // Nhãn tin cậy — chỉ admin mới gắn được (qua trang quản trị). Người dùng 'trusted'
+    // được tự động duyệt bài ngay khi đăng (bỏ qua hàng chờ duyệt).
+    trustStatus: {
+      type: String,
+      enum: ['none', 'trusted', 'untrusted'],
+      default: 'none',
     },
     resetPasswordToken: String,
     resetPasswordExpire: Date,

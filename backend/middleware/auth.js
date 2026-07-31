@@ -39,4 +39,13 @@ async function optionalAuth(req, res, next) {
   next();
 }
 
-module.exports = { protect, optionalAuth };
+// Middleware yêu cầu quyền admin — LUÔN dùng sau protect (protect gắn req.user trước)
+function adminOnly(req, res, next) {
+  if (!req.user || req.user.role !== 'admin') {
+    res.status(403);
+    return next(new Error('Chỉ quản trị viên mới có quyền thực hiện thao tác này.'));
+  }
+  next();
+}
+
+module.exports = { protect, optionalAuth, adminOnly };

@@ -13,6 +13,7 @@ function sendAuthResponse(user, statusCode, res) {
       email: user.email,
       phone: user.phone,
       role: user.role,
+      trustStatus: user.trustStatus,
     },
   });
 }
@@ -70,6 +71,7 @@ async function getMe(req, res) {
       email: req.user.email,
       phone: req.user.phone,
       role: req.user.role,
+      trustStatus: req.user.trustStatus,
     },
   });
 }

@@ -7,6 +7,7 @@ const { notFound, errorHandler } = require('./middleware/errorHandler');
 const authRoutes = require('./routes/authRoutes');
 const postRoutes = require('./routes/postRoutes');
 const articleRoutes = require('./routes/articleRoutes');
+const userRoutes = require('./routes/userRoutes');
 
 // Kết nối MongoDB Atlas
 connectDB();
@@ -39,6 +40,7 @@ app.get('/', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/posts', postRoutes);
 app.use('/api/articles', articleRoutes);
+app.use('/api/users', userRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

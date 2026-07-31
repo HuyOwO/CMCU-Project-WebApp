@@ -21,13 +21,28 @@ function parseCategoryParam(category) {
   return arr.length ? arr : null;
 }
 
-// @route  GET /api/posts?type=&category=&district=&status=&urgent=&dateFrom=&dateTo=&q=&sort=&page=&limit=&excludeId=
+// @route  GET /api/posts?type=&category=&district=&status=&urgent=&dateFrom=&dateTo=&q=&sort=&page=&limit=&excludeId=&mine=1&moderation=pending
+// Cần optionalAuth ở route để biết req.user (nếu có) mà không bắt buộc đăng nhập.
 async function getPosts(req, res, next) {
   try {
-    const { type, category, district, status, urgent, dateFrom, dateTo, q, sort, page, limit, excludeId } =
+    const { type, category, district, status, urgent, dateFrom, dateTo, q, sort, page, limit, excludeId, mine, moderation } =
       req.query;
 
     const filter = {};
+
+    // ── Quyết định phạm vi hiển thị theo trạng thái duyệt bài ──
+    if (mine === '1' && req.user) {
+      // "Tin của tôi": xem tất cả tin của chính mình bất kể trạng thái duyệt
+      filter.author = req.user._id;
+      if (moderation && moderation !== 'all') filter.moderationStatus = moderation;
+    } else if (moderation && req.user && req.user.role === 'admin') {
+      // Trang quản trị: admin lọc theo 1 trạng thái cụ thể, hoặc 'all' = mọi trạng thái
+      if (moderation !== 'all') filter.moderationStatus = moderation;
+    } else {
+      // Công khai: chỉ hiện tin đã được duyệt
+      filter.moderationStatus = 'approved';
+    }
+
     if (type && type !== 'all') filter.type = type;
     if (district) filter.district = district;
     if (status) filter.status = status;
@@ -37,7 +52,6 @@ async function getPosts(req, res, next) {
 
     const categories = parseCategoryParam(category);
     if (categories) {
-      // Bao gồm cả tin cũ chưa gắn category nhưng suy luận được từ type trùng khớp
       const legacyTypes = categories
         .map((c) => (c === 'pet' ? 'pet' : c === 'vehicle' ? 'vehicle' : null))
         .filter(Boolean);
@@ -55,7 +69,6 @@ async function getPosts(req, res, next) {
     if (q) {
       const regex = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
       const textOr = [{ name: regex }, { location: regex }, { district: regex }, { desc: regex }];
-      // Nếu đã có $or (do lọc category) thì gộp bằng $and để không đè lên nhau
       if (filter.$or) {
         filter.$and = [{ $or: filter.$or }, { $or: textOr }];
         delete filter.$or;
@@ -79,10 +92,10 @@ async function getPosts(req, res, next) {
       Post.countDocuments(filter),
     ]);
 
-    // Trả thêm "displayCategory" tiện cho frontend hiển thị badge mà không cần tự suy luận lại
     const postsOut = posts.map((p) => {
       const obj = p.toObject();
-      obj.displayCategory = obj.category && obj.category !== 'other' ? obj.category : inferCategoryFromType(obj.type) || obj.category || 'other';
+      obj.displayCategory =
+        obj.category && obj.category !== 'other' ? obj.category : inferCategoryFromType(obj.type) || obj.category || 'other';
       return obj;
     });
 
@@ -97,15 +110,16 @@ async function getPosts(req, res, next) {
   }
 }
 
-// @route  GET /api/posts/stats
+// @route  GET /api/posts/stats — chỉ tính trên tin đã duyệt (số liệu công khai)
 async function getStats(req, res, next) {
   try {
+    const base = { moderationStatus: 'approved' };
     const [total, lost, found, closed, urgent] = await Promise.all([
-      Post.countDocuments({}),
-      Post.countDocuments({ type: 'lost' }),
-      Post.countDocuments({ type: 'found' }),
-      Post.countDocuments({ status: 'closed' }),
-      Post.countDocuments({ isUrgent: true, status: 'open' }),
+      Post.countDocuments(base),
+      Post.countDocuments({ ...base, type: 'lost' }),
+      Post.countDocuments({ ...base, type: 'found' }),
+      Post.countDocuments({ ...base, status: 'closed' }),
+      Post.countDocuments({ ...base, isUrgent: true, status: 'open' }),
     ]);
     res.json({ total, lost, found, closed, urgent });
   } catch (err) {
@@ -113,18 +127,27 @@ async function getStats(req, res, next) {
   }
 }
 
-// @route  GET /api/posts/:id
+// @route  GET /api/posts/:id  — cần optionalAuth: tin chưa duyệt chỉ chủ tin/admin xem được
 async function getPost(req, res, next) {
   try {
-    const post = await Post.findById(req.params.id);
+    const post = await Post.findById(req.params.id).populate('author', 'name trustStatus');
     if (!post) return res.status(404).json({ message: 'Không tìm thấy tin đăng.' });
+
+    const isOwner = req.user && post.author && String(post.author._id) === String(req.user._id);
+    const isAdmin = req.user && req.user.role === 'admin';
+
+    if (post.moderationStatus !== 'approved' && !isOwner && !isAdmin) {
+      // Ẩn như thể không tồn tại, tránh lộ thông tin tin đang chờ duyệt/bị từ chối
+      return res.status(404).json({ message: 'Không tìm thấy tin đăng.' });
+    }
+
     res.json({ post });
   } catch (err) {
     next(err);
   }
 }
 
-// @route  GET /api/posts/:id/related — vài tin cùng danh mục, dùng cho trang chi tiết
+// @route  GET /api/posts/:id/related — vài tin cùng danh mục, chỉ lấy tin đã duyệt
 async function getRelatedPosts(req, res, next) {
   try {
     const post = await Post.findById(req.params.id);
@@ -132,7 +155,7 @@ async function getRelatedPosts(req, res, next) {
 
     const cat = post.category && post.category !== 'other' ? post.category : inferCategoryFromType(post.type);
 
-    const filter = { _id: { $ne: post._id }, status: 'open' };
+    const filter = { _id: { $ne: post._id }, status: 'open', moderationStatus: 'approved' };
     if (cat) filter.category = cat;
     else filter.type = post.type;
 
@@ -143,7 +166,7 @@ async function getRelatedPosts(req, res, next) {
   }
 }
 
-// @route  POST /api/posts   (cần đăng nhập)
+// @route  POST /api/posts   (cần đăng nhập) — tự động duyệt nếu người đăng là 'trusted'
 async function createPost(req, res, next) {
   try {
     const { type, category, name, district, location, phone, desc, img, date, isUrgent, reward } = req.body;
@@ -154,6 +177,8 @@ async function createPost(req, res, next) {
     if (!phone) return res.status(400).json({ message: 'Vui lòng nhập số điện thoại liên hệ.' });
     if (!/^0\d{9,10}$/.test(phone))
       return res.status(400).json({ message: 'Số điện thoại không hợp lệ (VD: 0912345678).' });
+
+    const autoApprove = req.user.trustStatus === 'trusted' || req.user.role === 'admin';
 
     const post = await Post.create({
       type: type || 'lost',
@@ -169,9 +194,10 @@ async function createPost(req, res, next) {
       reward: (reward || '').trim(),
       author: req.user._id,
       authorName: req.user.name,
+      moderationStatus: autoApprove ? 'approved' : 'pending',
     });
 
-    res.status(201).json({ post });
+    res.status(201).json({ post, autoApproved: autoApprove });
   } catch (err) {
     next(err);
   }
@@ -189,6 +215,26 @@ async function toggleStatus(req, res, next) {
 
     post.status = post.status === 'open' ? 'closed' : 'open';
     await post.save();
+    res.json({ post });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// @route  PATCH /api/posts/:id/moderate   body: { action: 'approve'|'reject' }   (admin)
+async function moderatePost(req, res, next) {
+  try {
+    const { action } = req.body;
+    if (!['approve', 'reject'].includes(action)) {
+      return res.status(400).json({ message: 'Hành động không hợp lệ.' });
+    }
+
+    const post = await Post.findById(req.params.id);
+    if (!post) return res.status(404).json({ message: 'Không tìm thấy tin đăng.' });
+
+    post.moderationStatus = action === 'approve' ? 'approved' : 'rejected';
+    await post.save();
+
     res.json({ post });
   } catch (err) {
     next(err);
@@ -224,14 +270,15 @@ async function revealPhone(req, res, next) {
   }
 }
 
-// @route  DELETE /api/posts/:id  (chỉ chủ tin)
+// @route  DELETE /api/posts/:id  (chủ tin HOẶC admin)
 async function deletePost(req, res, next) {
   try {
     const post = await Post.findById(req.params.id);
     if (!post) return res.status(404).json({ message: 'Không tìm thấy tin đăng.' });
 
-    if (post.author.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ message: 'Chỉ người đăng tin mới có thể xoá tin này.' });
+    const isOwner = post.author.toString() === req.user._id.toString();
+    if (!isOwner && req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Bạn không có quyền xoá tin này.' });
     }
 
     await post.deleteOne();
@@ -248,6 +295,7 @@ module.exports = {
   getRelatedPosts,
   createPost,
   toggleStatus,
+  moderatePost,
   toggleMatch,
   revealPhone,
   deletePost,

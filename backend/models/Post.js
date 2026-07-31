@@ -61,6 +61,14 @@ const postSchema = new mongoose.Schema(
       type: String,
       default: '',
     },
+    // Trạng thái duyệt bài — admin phải duyệt ('approved') thì tin mới hiện công khai.
+    // Tin của user có trustStatus='trusted' được tự động approved ngay khi đăng
+    // (xem postController.createPost). Mặc định 'pending' cho tin thường.
+    moderationStatus: {
+      type: String,
+      enum: ['pending', 'approved', 'rejected'],
+      default: 'pending',
+    },
     status: {
       type: String,
       enum: ['open', 'closed'],
@@ -90,6 +98,7 @@ const postSchema = new mongoose.Schema(
 postSchema.index({ createdAt: -1 });
 postSchema.index({ type: 1, district: 1, status: 1 });
 postSchema.index({ category: 1 });
+postSchema.index({ moderationStatus: 1 });
 
 module.exports = mongoose.model('Post', postSchema);
 module.exports.TYPES = TYPES;

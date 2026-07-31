@@ -8,21 +8,26 @@ const {
   getRelatedPosts,
   createPost,
   toggleStatus,
+  moderatePost,
   toggleMatch,
   revealPhone,
   deletePost,
 } = require('../controllers/postController');
-const { protect } = require('../middleware/auth');
+const { protect, optionalAuth, adminOnly } = require('../middleware/auth');
 
 // Lưu ý thứ tự: '/stats' và các route tĩnh khác phải khai báo TRƯỚC '/:id',
 // nếu không Express sẽ hiểu nhầm chúng là 1 giá trị :id
-router.get('/', getPosts);
+//
+// optionalAuth: không bắt buộc đăng nhập, nhưng nếu có token hợp lệ thì gắn req.user
+// để controller biết ai đang xem (phục vụ "Tin của tôi" + hiện tin pending cho chủ/admin)
+router.get('/', optionalAuth, getPosts);
 router.get('/stats', getStats);
 router.get('/:id/related', getRelatedPosts);
-router.get('/:id', getPost);
+router.get('/:id', optionalAuth, getPost);
 
 router.post('/', protect, createPost);
 router.patch('/:id/status', protect, toggleStatus);
+router.patch('/:id/moderate', protect, adminOnly, moderatePost);
 router.patch('/:id/match', protect, toggleMatch);
 router.post('/:id/reveal', revealPhone);
 router.delete('/:id', protect, deletePost);
