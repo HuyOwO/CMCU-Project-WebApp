@@ -177,12 +177,15 @@ async function createPost(req, res, next) {
     if (!phone) return res.status(400).json({ message: 'Vui lòng nhập số điện thoại liên hệ.' });
     if (!/^0\d{9,10}$/.test(phone))
       return res.status(400).json({ message: 'Số điện thoại không hợp lệ (VD: 0912345678).' });
+    if (!category || !Post.CATEGORIES.includes(category)) {
+      return res.status(400).json({ message: 'Vui lòng chọn danh mục đồ vật.' });
+    }
 
     const autoApprove = req.user.trustStatus === 'trusted' || req.user.role === 'admin';
 
     const post = await Post.create({
       type: type || 'lost',
-      category: category || 'other',
+      category,
       name: name.trim(),
       district,
       location: location.trim(),
@@ -252,7 +255,12 @@ async function updatePost(req, res, next) {
       post.phone = phone;
     }
     if (type !== undefined) post.type = type;
-    if (category !== undefined) post.category = category;
+    if (category !== undefined) {
+      if (!Post.CATEGORIES.includes(category)) {
+        return res.status(400).json({ message: 'Danh mục không hợp lệ.' });
+      }
+      post.category = category;
+    }
     if (district !== undefined) post.district = district;
     if (desc !== undefined) post.desc = (desc || '').trim() || 'Không có mô tả thêm.';
     if (img !== undefined) post.img = img;
