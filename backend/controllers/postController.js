@@ -268,14 +268,10 @@ async function updatePost(req, res, next) {
     if (isUrgent !== undefined) post.isUrgent = !!isUrgent;
     if (reward !== undefined) post.reward = (reward || '').trim();
 
-    let needsReview = false;
-    if (!isAdmin) {
-      needsReview = req.user.trustStatus !== 'trusted';
-      post.moderationStatus = needsReview ? 'pending' : 'approved';
-    }
-
+    // Lưu ý: sửa tin KHÔNG ảnh hưởng tới moderationStatus — chỉ tin đăng MỚI mới cần
+    // admin duyệt. Chủ tin có thể chỉnh sửa thoải mái mà không bị đưa lại vào hàng chờ.
     await post.save();
-    res.json({ post, needsReview });
+    res.json({ post });
   } catch (err) {
     next(err);
   }

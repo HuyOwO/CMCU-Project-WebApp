@@ -151,7 +151,7 @@ dothatlac-hn/
 | GET    | `/api/posts/:id`                         | Chi tiết 1 tin — tin chưa duyệt chỉ chủ tin/admin xem được  | ✗ (có token thì thấy thêm) |
 | GET    | `/api/posts/:id/related`                  | Vài tin cùng danh mục (chỉ tin đã duyệt)                     | ✗ |
 | POST   | `/api/posts`                               | Đăng tin mới — mặc định `pending`, tự `approved` nếu người đăng `trusted`/admin | đăng nhập |
-| PATCH  | `/api/posts/:id`                            | Sửa tin — chủ tin hoặc admin. Sửa xong quay lại `pending` trừ khi người sửa là admin/`trusted` | đăng nhập |
+| PATCH  | `/api/posts/:id`                            | Sửa tin — chủ tin hoặc admin. Không ảnh hưởng trạng thái duyệt (chỉ tin MỚI cần duyệt) | đăng nhập |
 | PATCH  | `/api/posts/:id/status`                     | Đổi trạng thái đã tìm thấy/mở lại — chỉ chủ tin              | đăng nhập |
 | PATCH  | `/api/posts/:id/moderate`                    | Duyệt/từ chối tin — body `{action:'approve'\|'reject'}`        | **admin** |
 | PATCH  | `/api/posts/:id/match`                       | Đánh dấu "Quan tâm"                                              | đăng nhập |
