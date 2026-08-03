@@ -292,10 +292,12 @@ async function submitPost() {
   const name = document.getElementById('f-name').value.trim();
   const location = document.getElementById('f-location').value.trim();
   const phone = document.getElementById('f-phone').value.trim();
+  const category = document.getElementById('f-category').value;
 
   if (!name || !location) return alert('Vui lòng điền tên đồ vật và địa điểm!');
   if (!phone) return alert('Vui lòng nhập số điện thoại liên hệ!');
   if (!/^0\d{9,10}$/.test(phone)) return alert('Số điện thoại không hợp lệ (VD: 0912345678)');
+  if (!category) return alert('Vui lòng chọn danh mục đồ vật!');
 
   const submitBtn = document.querySelector('.modal-btns .btn-primary');
   const oldLabel = submitBtn ? submitBtn.textContent : '';
@@ -306,7 +308,7 @@ async function submitPost() {
 
   const payload = {
     type: document.getElementById('f-type').value,
-    category: document.getElementById('f-category').value,
+    category,
     name,
     district: document.getElementById('f-district').value,
     location,
@@ -320,13 +322,9 @@ async function submitPost() {
 
   try {
     if (editingPostId) {
-      const { needsReview } = await api.patch(`/posts/${editingPostId}`, payload);
+      await api.patch(`/posts/${editingPostId}`, payload);
       closeModal();
-      showToast(
-        needsReview
-          ? '✅ Đã lưu thay đổi — tin cần được duyệt lại trước khi hiện công khai.'
-          : '✅ Đã lưu thay đổi.'
-      );
+      showToast('✅ Đã lưu thay đổi.');
       editingPostId = null;
       if (document.getElementById('my-posts-content')) fetchMyPosts(myPostsPage);
     } else {

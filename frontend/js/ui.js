@@ -215,6 +215,10 @@ function renderPostDetail() {
       : `<button class="btn-action" onclick="resolvePost('${p._id}')">↩️ Mở lại tin</button>`
     : '';
 
+  const reportBtn = !isOwner
+    ? `<button class="btn-action${isFlagged ? ' active-flag' : ''}" onclick="toggleFlag('${p._id}')">${isFlagged ? '⚠️ Đã báo cáo' : '🚩 Báo cáo lừa đảo'}</button>`
+    : '';
+
   root.innerHTML = `
     <div class="detail-card">
       ${imgSection}
@@ -239,7 +243,7 @@ function renderPostDetail() {
           <button class="btn-action${isMatched ? ' active-match' : ''}" onclick="toggleMatch('${p._id}')">👀 Quan tâm (${p.matches})</button>
           ${resolveBtn}
           <button class="btn-action" onclick="sharePost(currentPost)">📤 Chia sẻ</button>
-          <button class="btn-action${isFlagged ? ' active-flag' : ''}" onclick="toggleFlag('${p._id}')">${isFlagged ? '⚠️ Đã báo cáo' : '🚩 Báo cáo lừa đảo'}</button>
+          ${reportBtn}
         </div>
       </div>
     </div>`;
@@ -519,7 +523,7 @@ function openModal() {
   ['f-name', 'f-location', 'f-desc', 'f-phone', 'f-reward'].forEach((id) => {
     document.getElementById(id).value = '';
   });
-  document.getElementById('f-category').value = 'other';
+  document.getElementById('f-category').value = '';
   document.getElementById('f-type').value = 'lost';
   document.getElementById('f-district').selectedIndex = 0;
   document.querySelector('#modal h3').textContent = '📝 Đăng tin mới';
@@ -575,6 +579,10 @@ function handleOverlayClick(e) {
    ============================================================ */
 function openArticleModal() {
   if (!requireAuth(null, 'Vui lòng đăng nhập để đăng bài viết.')) return;
+  if (!currentUser || currentUser.role !== 'admin') {
+    showToast('🔒 Chỉ quản trị viên mới được đăng Mẹo tìm đồ / Cảnh báo lừa đảo.');
+    return;
+  }
   articleImgDataUrl = null;
   document.getElementById('a-img-preview').style.display = 'none';
   document.getElementById('a-upload-text').textContent = 'Bấm để chọn ảnh (JPG, PNG...)';

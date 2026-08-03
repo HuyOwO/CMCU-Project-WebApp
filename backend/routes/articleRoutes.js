@@ -7,10 +7,10 @@ const { protect, adminOnly } = require('../middleware/auth');
 router.get('/', getArticles);
 router.get('/:idOrSlug', getArticle);
 
-// Chỉ admin được đăng Mẹo tìm đồ / Cảnh báo lừa đảo (đây là nội dung mang tính "biên tập",
-// không phải tin đăng của người dùng thường).
+// Toàn bộ thao tác với Mẹo tìm đồ / Cảnh báo lừa đảo (tạo/sửa/xoá) đều chỉ dành cho admin —
+// đây là nội dung mang tính "biên tập", không phải tin đăng của người dùng thường.
 router.post('/', protect, adminOnly, createArticle);
-router.patch('/:id', protect, updateArticle);
-router.delete('/:id', protect, deleteArticle);
+router.patch('/:id', protect, adminOnly, updateArticle);
+router.delete('/:id', protect, adminOnly, deleteArticle);
 
 module.exports = router;

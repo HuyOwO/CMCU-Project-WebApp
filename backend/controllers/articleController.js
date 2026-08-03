@@ -95,15 +95,11 @@ async function createArticle(req, res, next) {
 }
 
 // @route  PATCH /api/articles/:id   (chủ bài viết hoặc admin)
+// @route  PATCH /api/articles/:id   (admin — xem middleware adminOnly ở route)
 async function updateArticle(req, res, next) {
   try {
     const article = await Article.findById(req.params.id);
     if (!article) return res.status(404).json({ message: 'Không tìm thấy bài viết.' });
-
-    const isOwner = article.author.toString() === req.user._id.toString();
-    if (!isOwner && req.user.role !== 'admin') {
-      return res.status(403).json({ message: 'Bạn không có quyền sửa bài viết này.' });
-    }
 
     const { title, thumbnail, summary, content, scamContact, isPinned } = req.body;
     if (title !== undefined) article.title = title.trim();
@@ -123,15 +119,11 @@ async function updateArticle(req, res, next) {
 }
 
 // @route  DELETE /api/articles/:id   (chủ bài viết hoặc admin)
+// @route  DELETE /api/articles/:id   (admin — xem middleware adminOnly ở route)
 async function deleteArticle(req, res, next) {
   try {
     const article = await Article.findById(req.params.id);
     if (!article) return res.status(404).json({ message: 'Không tìm thấy bài viết.' });
-
-    const isOwner = article.author.toString() === req.user._id.toString();
-    if (!isOwner && req.user.role !== 'admin') {
-      return res.status(403).json({ message: 'Bạn không có quyền xoá bài viết này.' });
-    }
 
     await article.deleteOne();
     res.json({ message: 'Đã xoá bài viết.' });
